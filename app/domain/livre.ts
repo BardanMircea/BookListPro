@@ -33,7 +33,7 @@ export const LivreFormSchema = z.object({
   titre: z.string().min(1, "Le titre est requis"),
   auteur: z.string().min(1, "L'auteur est requis"),
   editeur: z.string().min(1, "L'éditeur est requis"),
-  annee: z.coerce
+  annee: z
     .number()
     .int()
     .min(1450, "Année minimale : 1450")
