@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -65,18 +66,25 @@ export default function BookDetailScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert(
-      "Suppression",
-      `Êtes-vous sûr de vouloir supprimer "${book?.titre}" ?`,
-      [
+    const question = `Êtes-vous sûr de vouloir supprimer "${book?.titre}" ?`;
+
+    if (Platform.OS === "web") {
+      // Sur le Web, on utilise le dialogue natif du navigateur
+      const confirmation = window.confirm(question);
+      if (confirmation) {
+        startPendingDelete();
+      }
+    } else {
+      // Sur iOS et Android, on utilise Alert
+      Alert.alert("Suppression", question, [
         { text: "Annuler", style: "cancel" },
         {
           text: "Supprimer",
           style: "destructive",
           onPress: startPendingDelete,
         },
-      ],
-    );
+      ]);
+    }
   };
 
   if (isLoading) {
