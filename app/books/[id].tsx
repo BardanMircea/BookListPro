@@ -1,4 +1,3 @@
-// app/books/[id].tsx
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {

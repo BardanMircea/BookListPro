@@ -1,4 +1,3 @@
-// app/books/new.tsx
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
