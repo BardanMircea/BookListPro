@@ -1,42 +1,80 @@
+// components/BookCard.tsx
 import { Livre } from "@/app/domain/livre";
+import { theme } from "@/constants/theme";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type BookCardProps = {
   livre: Livre;
   onPress: (id: string) => void;
-  onToggleLu?: (id: string, lu: boolean) => void;
+  onToggleLu: (id: string, lu: boolean) => void;
+  onToggleFavori: (id: string, favori: boolean) => void;
 };
 
-export const BookCard: React.FC<BookCardProps> = ({
+const BookCardComponent: React.FC<BookCardProps> = ({
   livre,
   onPress,
   onToggleLu,
+  onToggleFavori,
 }) => {
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={() => onPress(livre.id)}
       accessibilityRole="button"
+      accessibilityLabel={`${livre.titre}, par ${livre.auteur}`}
     >
       <View style={styles.headerRow}>
         <Text style={styles.titre} numberOfLines={2}>
           {livre.titre}
         </Text>
-        <Pressable
-          style={[styles.badge, livre.lu ? styles.badgeLu : styles.badgeNonLu]}
-          onPress={() => onToggleLu?.(livre.id, !livre.lu)}
-          hitSlop={8}
-        >
-          <Text
-            style={[
-              styles.badgeText,
-              livre.lu ? styles.badgeTextLu : styles.badgeTextNonLu,
+
+        <View style={styles.actionsTop}>
+          {/* Coup de cœur optimiste (Zone tactile ≥ 44 pt) */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.heartButton,
+              livre.favori && styles.heartButtonActive,
+              pressed && styles.heartButtonPressed,
             ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavori(livre.id, !livre.favori);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              livre.favori
+                ? `Retirer ${livre.titre} des coups de cœur`
+                : `Ajouter ${livre.titre} aux coups de cœur`
+            }
+            accessibilityState={{ selected: livre.favori }}
           >
-            {livre.lu ? "Lu" : "À lire"}
-          </Text>
-        </Pressable>
+            <Text style={styles.heartIcon}>{livre.favori ? "❤️" : "🤍"}</Text>
+          </Pressable>
+
+          {/* Badge Lu optimiste */}
+          <Pressable
+            style={[
+              styles.badge,
+              livre.lu ? styles.badgeLu : styles.badgeNonLu,
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleLu(livre.id, !livre.lu);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Statut de lecture : ${livre.lu ? "Lu" : "À lire"}. Toucher pour modifier.`}
+          >
+            <Text
+              style={[
+                styles.badgeText,
+                livre.lu ? styles.badgeTextLu : styles.badgeTextNonLu,
+              ]}
+            >
+              {livre.lu ? "Lu" : "À lire"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <Text style={styles.auteur}>{livre.auteur}</Text>
@@ -53,78 +91,98 @@ export const BookCard: React.FC<BookCardProps> = ({
   );
 };
 
+// React.memo évite de recalculer ce composant si ses props (livre, callbacks) ne changent pas
+export const BookCard = React.memo(BookCardComponent);
+
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: theme.colors.border,
   },
   cardPressed: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: theme.colors.borderLight,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   titre: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a",
+    color: theme.colors.textPrimary,
     flex: 1,
   },
-  auteur: {
-    fontSize: 14,
-    color: "#475569",
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  footerRow: {
+  actionsTop: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
-    paddingTop: 8,
+    gap: theme.spacing.xs,
   },
-  details: {
-    fontSize: 13,
-    color: "#64748b",
+  heartButton: {
+    minWidth: theme.layout.minTouchTarget,
+    minHeight: theme.layout.minTouchTarget,
+    borderRadius: theme.borderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  note: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#d97706",
+  heartButtonActive: {
+    backgroundColor: theme.colors.favoriteBg,
+  },
+  heartButtonPressed: {
+    transform: [{ scale: 0.9 }],
+  },
+  heartIcon: {
+    fontSize: 18,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    minHeight: theme.layout.minTouchTarget,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.full,
+    justifyContent: "center",
   },
   badgeLu: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: theme.colors.successBg,
   },
   badgeNonLu: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: theme.colors.borderLight,
   },
   badgeText: {
     fontSize: 12,
     fontWeight: "600",
   },
   badgeTextLu: {
-    color: "#15803d",
+    color: theme.colors.success,
   },
   badgeTextNonLu: {
-    color: "#64748b",
+    color: theme.colors.textSecondary,
+  },
+  auteur: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    fontStyle: "italic",
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderLight,
+    paddingTop: theme.spacing.sm,
+  },
+  details: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
+  note: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.warning,
   },
 });
