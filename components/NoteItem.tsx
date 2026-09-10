@@ -1,5 +1,6 @@
 import { Note } from "@/app/domain/note";
 import { theme } from "@/constants/theme";
+
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 

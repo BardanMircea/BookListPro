@@ -19,7 +19,7 @@ export const BookFiltersBar: React.FC<BookFiltersBarProps> = ({
   onFiltersChange,
 }) => {
   const [localQuery, setLocalQuery] = useState("");
-  const debouncedQuery = useDebounce(localQuery, 3000);
+  const debouncedQuery = useDebounce(localQuery, 300);
 
   const [status, setStatus] = useState<"all" | "lu" | "nonlu">("all");
   const [favoriOnly, setFavoriOnly] = useState(false);
