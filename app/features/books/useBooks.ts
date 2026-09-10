@@ -2,49 +2,59 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppError } from "../../domain/errors";
 import { PaginatedBooks } from "../../domain/livre";
-import { booksService } from "../../services/api/booksService";
-import { bookKeys } from "./bookKeys";
+import { BookFilters, booksService } from "../../services/api/booksService";
 
-const DEFAULT_PAGE_LIMIT = 20;
-
-export function useBooks(initialPage = 1) {
-  const [page, setPage] = useState(initialPage);
-
-  const query = useQuery<PaginatedBooks, AppError>({
-    queryKey: bookKeys.list(page, DEFAULT_PAGE_LIMIT),
-    queryFn: () => booksService.getAll(page, DEFAULT_PAGE_LIMIT),
+export function useBooks() {
+  const [filters, setFilters] = useState<BookFilters>({
+    page: 1,
+    limit: 20,
+    sort: "titre",
+    order: "asc",
   });
 
+  const query = useQuery<PaginatedBooks, AppError>({
+    // La clé de cache dépend directement de l'ensemble des filtres
+    queryKey: ["books", "list", filters],
+    // signal permet à fetch d'annuler immédiatement la requête HTTP en vol si filters change
+    queryFn: ({ signal }) => booksService.getAllFiltered(filters, signal),
+  });
+
+  const setPartialFilters = (newFilters: Partial<BookFilters>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+  };
+
   const nextPage = () => {
-    if (query.data && page < query.data.totalPages) {
-      setPage((prev) => prev + 1);
+    if (query.data && (filters.page ?? 1) < query.data.totalPages) {
+      setFilters((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }));
     }
   };
 
   const previousPage = () => {
-    setPage((prev) => Math.max(prev - 1, 1));
+    setFilters((prev) => ({
+      ...prev,
+      page: Math.max((prev.page ?? 1) - 1, 1),
+    }));
   };
-
-  const isEmpty =
-    !query.isLoading && !query.isError && query.data?.items.length === 0;
 
   return {
     books: query.data?.items ?? [],
     pagination: {
-      currentPage: query.data?.page ?? page,
+      currentPage: query.data?.page ?? filters.page ?? 1,
       totalPages: query.data?.totalPages ?? 1,
       totalItems: query.data?.total ?? 0,
-      hasNext: query.data ? page < query.data.totalPages : false,
-      hasPrevious: page > 1,
+      hasNext: query.data ? (filters.page ?? 1) < query.data.totalPages : false,
+      hasPrevious: (filters.page ?? 1) > 1,
       nextPage,
       previousPage,
     },
-    // États requis
+    filters,
+    setFilters: setPartialFilters,
     isLoading: query.isLoading,
-    isFetching: query.isFetching, // Utile pour afficher un petit rafraîchissement sans bloquer l'écran
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
-    isEmpty,
+    isEmpty:
+      !query.isLoading && !query.isError && query.data?.items.length === 0,
     refetch: query.refetch,
   };
 }
