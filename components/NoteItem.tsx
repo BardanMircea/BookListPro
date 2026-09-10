@@ -1,6 +1,7 @@
 import { Note } from "@/app/domain/note";
+import { useI18n } from "@/app/theme/i18n";
+import { useAppTheme } from "@/app/theme/ThemeContext";
 import { theme } from "@/constants/theme";
-
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -10,24 +11,34 @@ type NoteItemProps = {
   isDeleting: boolean;
 };
 
-export const NoteItem: React.FC<NoteItemProps> = ({
+const NoteItemComponent: React.FC<NoteItemProps> = ({
   note,
   onDelete,
   isDeleting,
 }) => {
-  // Formatage natif français : "10 sept. 2026 à 11:04"
-  const dateAffichee = new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(note.createdAt));
+  const { colors } = useAppTheme();
+  const { formatDate, language } = useI18n();
+
+  const formattedDate = formatDate(note.createdAt);
+  const deleteLabel =
+    language === "fr"
+      ? `Supprimer la note du ${formattedDate}`
+      : `Delete note from ${formattedDate}`;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.borderLight,
+        },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={styles.date}>{dateAffichee}</Text>
+        <Text style={[styles.date, { color: colors.textMuted }]}>
+          {formattedDate}
+        </Text>
         <Pressable
           style={({ pressed }) => [
             styles.deleteButton,
@@ -36,24 +47,33 @@ export const NoteItem: React.FC<NoteItemProps> = ({
           onPress={() => onDelete(note.id)}
           disabled={isDeleting}
           accessibilityRole="button"
-          accessibilityLabel={`Supprimer la note du ${dateAffichee}`}
-          accessibilityHint="Supprime définitivement cette note de lecture"
+          accessibilityLabel={deleteLabel}
+          accessibilityHint={
+            language === "fr"
+              ? "Supprime définitivement cette note"
+              : "Permanently deletes this note"
+          }
         >
-          <Text style={styles.deleteButtonText}>✕</Text>
+          <Text style={[styles.deleteButtonText, { color: colors.danger }]}>
+            ✕
+          </Text>
         </Pressable>
       </View>
-      <Text style={styles.contenu}>{note.contenu}</Text>
+      <Text style={[styles.contenu, { color: colors.textPrimary }]}>
+        {note.contenu}
+      </Text>
     </View>
   );
 };
 
+// Mémoïsé pour éviter les re-renders inutiles lors de la frappe dans le formulaire
+export const NoteItem = React.memo(NoteItemComponent);
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.borderLight,
     marginBottom: theme.spacing.sm,
   },
   header: {
@@ -64,7 +84,6 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: theme.colors.textMuted,
     fontWeight: "500",
   },
   deleteButton: {
@@ -74,16 +93,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   deleteButtonPressed: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   deleteButtonText: {
-    color: theme.colors.danger,
     fontSize: 16,
     fontWeight: "bold",
   },
   contenu: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
     lineHeight: 20,
   },
 });

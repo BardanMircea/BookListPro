@@ -1,9 +1,11 @@
 import { theme } from "@/constants/theme";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -15,12 +17,24 @@ import {
 import { BookSkeleton } from "../../components/BookSkeleton";
 import { ErrorView } from "../../components/ErrorView";
 import { NoteItem } from "../../components/NoteItem";
+import { RatingStars } from "../../components/RatingStars";
+import { bookKeys } from "../features/books/bookKeys";
 import { useBookDetail } from "../features/books/useBookDetail";
+import { useBookRating } from "../features/books/useBookRating";
+import { useOpenLibrary } from "../features/books/useOpenLibrary";
 import { useOptimisticBookToggles } from "../features/books/useOptimisticBookToggles";
 import { useNotes } from "../features/notes/useNotes";
+import { coverUploadService } from "../services/coverUploadService";
+import { resolveCoverUrl } from "../services/imageResolver";
+import { useAppTheme } from "../theme/ThemeContext";
+import { useI18n } from "../theme/i18n";
 
 export default function BookDetailScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { colors } = useAppTheme();
+  const { t } = useI18n();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const bookId = Array.isArray(id) ? id[0] : id;
 
@@ -36,12 +50,17 @@ export default function BookDetailScreen() {
     isDeleting,
   } = useNotes(bookId);
   const { toggleLu, toggleFavori } = useOptimisticBookToggles();
+  const { setRating } = useBookRating(bookId);
+  const { data: openLibraryData, isLoading: isLoadingOL } = useOpenLibrary(
+    book?.titre,
+  );
 
-  // État local du formulaire d'ajout de note
+  // États locaux
   const [contenuNote, setContenuNote] = useState("");
   const [erreurNote, setErreurNote] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
-  // État pour la suppression réversible (5 s)
+  // Suppression temporisée réversible (5 s)
   const [countdown, setCountdown] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -63,8 +82,8 @@ export default function BookDetailScreen() {
     timerRef.current = setTimeout(async () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       try {
-        await deleteBook(bookId);
         router.replace("/");
+        await deleteBook(bookId);
       } catch {
         if (Platform.OS === "web") {
           window.alert("Impossible de supprimer cet ouvrage.");
@@ -100,7 +119,41 @@ export default function BookDetailScreen() {
     }
   };
 
-  // Ajout de note avec validation
+  // Remplacement de couverture
+  const handleChangeCover = async () => {
+    try {
+      setIsUploadingCover(true);
+      const updatedBook = await coverUploadService.pickAndUploadCover(bookId);
+      if (updatedBook) {
+        queryClient.setQueryData(bookKeys.detail(bookId), updatedBook);
+        queryClient.invalidateQueries({ queryKey: bookKeys.lists() });
+      }
+    } catch {
+      const errMsg = "Impossible de téléverser cette image.";
+      if (Platform.OS === "web") window.alert(errMsg);
+      else Alert.alert("Erreur", errMsg);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  // Rétablissement de la couverture originale
+  const handleResetCover = async () => {
+    try {
+      setIsUploadingCover(true);
+      const updatedBook = await coverUploadService.resetCover(bookId);
+      queryClient.setQueryData(bookKeys.detail(bookId), updatedBook);
+      queryClient.invalidateQueries({ queryKey: bookKeys.lists() });
+    } catch {
+      const errMsg = "Impossible de réinitialiser la couverture.";
+      if (Platform.OS === "web") window.alert(errMsg);
+      else Alert.alert("Erreur", errMsg);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  // Ajout de note
   const handleAddNote = async () => {
     const trimmed = contenuNote.trim();
     if (!trimmed) {
@@ -123,7 +176,7 @@ export default function BookDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <BookSkeleton count={1} />
       </View>
     );
@@ -131,141 +184,301 @@ export default function BookDetailScreen() {
 
   if (isError || !book) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ErrorView error={error} onRetry={refetch} />
       </View>
     );
   }
 
+  const coverUrl = resolveCoverUrl(book.couverture);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Bandeau d'annulation pendant 5 secondes */}
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      {/* Bandeau d'annulation (5 s) */}
       {countdown !== null && (
-        <View style={styles.undoBanner}>
-          <Text style={styles.undoText}>Suppression dans {countdown} s...</Text>
+        <View
+          style={[styles.undoBanner, { backgroundColor: colors.textPrimary }]}
+        >
+          <Text style={[styles.undoText, { color: colors.surface }]}>
+            {t.deleteCountdown(countdown)}
+          </Text>
           <Pressable
-            style={styles.undoButton}
+            style={[styles.undoButton, { backgroundColor: colors.favorite }]}
             onPress={cancelPendingDelete}
             accessibilityRole="button"
-            accessibilityLabel="Annuler la suppression"
+            accessibilityLabel={t.cancel}
           >
-            <Text style={styles.undoButtonText}>ANNULER</Text>
+            <Text style={styles.undoButtonText}>{t.cancel}</Text>
           </Pressable>
         </View>
       )}
 
       {/* Carte principale */}
-      <View style={styles.card}>
-        <View style={styles.topBar}>
-          {/* Badge Lu optimiste */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.topRow}>
+          {/* Badge Lu */}
           <Pressable
-            style={[styles.badge, book.lu ? styles.badgeLu : styles.badgeNonLu]}
+            style={[
+              styles.badge,
+              {
+                backgroundColor: book.lu
+                  ? colors.successBg
+                  : colors.borderLight,
+              },
+            ]}
             onPress={() => toggleLu(book.id, !book.lu)}
             accessibilityRole="button"
-            accessibilityLabel={`Statut de lecture : ${book.lu ? "Lu" : "À lire"}. Toucher pour basculer.`}
           >
             <Text
               style={[
                 styles.badgeText,
-                book.lu ? styles.badgeTextLu : styles.badgeTextNonLu,
+                { color: book.lu ? colors.success : colors.textSecondary },
               ]}
             >
-              {book.lu ? "✓ Lu" : "À lire"}
+              {book.lu ? `✓ ${t.readStatusRead}` : t.readStatusToRead}
             </Text>
           </Pressable>
 
-          {/* Coup de cœur optimiste (Zone tactile ≥ 44 pt) */}
+          {/* Coup de cœur */}
           <Pressable
             style={({ pressed }) => [
               styles.heartButton,
-              book.favori && styles.heartButtonActive,
-              pressed && styles.heartButtonPressed,
+              {
+                backgroundColor: book.favori
+                  ? colors.favoriteBg
+                  : colors.borderLight,
+              },
+              pressed && { transform: [{ scale: 0.92 }] },
             ]}
             onPress={() => toggleFavori(book.id, !book.favori)}
             accessibilityRole="button"
-            accessibilityLabel={
-              book.favori
-                ? "Retirer des coups de cœur"
-                : "Ajouter aux coups de cœur"
-            }
             accessibilityState={{ selected: book.favori }}
           >
-            <Text
-              style={[styles.heartIcon, book.favori && styles.heartIconActive]}
-            >
-              {book.favori ? "❤️" : "🤍"}
-            </Text>
+            <Text style={styles.heartIcon}>{book.favori ? "❤️" : "🤍"}</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.titre}>{book.titre}</Text>
-        <Text style={styles.auteur}>par {book.auteur}</Text>
-
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Éditeur :</Text>
-          <Text style={styles.metaValue}>{book.editeur}</Text>
-        </View>
-
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Année de publication :</Text>
-          <Text style={styles.metaValue}>{book.annee}</Text>
-        </View>
-
-        {book.note !== null && (
-          <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Note :</Text>
-            <Text style={styles.metaValue}>★ {book.note}/5</Text>
+        {/* Section Couverture et Métadonnées */}
+        <View style={styles.coverAndInfo}>
+          <View style={styles.coverWrapper}>
+            <Image
+              source={{ uri: coverUrl }}
+              style={styles.coverImage}
+              resizeMode="cover"
+            />
+            {isUploadingCover && (
+              <View style={styles.coverLoadingOverlay}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            )}
+            <View style={styles.coverButtons}>
+              <Pressable
+                style={[
+                  styles.coverActionBtn,
+                  { backgroundColor: colors.borderLight },
+                ]}
+                onPress={handleChangeCover}
+                disabled={isUploadingCover}
+                accessibilityRole="button"
+              >
+                <Text
+                  style={[
+                    styles.coverActionText,
+                    { color: colors.textPrimary },
+                  ]}
+                >
+                  {t.changeCover}
+                </Text>
+              </Pressable>
+              {book.couverture && (
+                <Pressable
+                  style={[
+                    styles.coverActionBtn,
+                    { backgroundColor: colors.borderLight },
+                  ]}
+                  onPress={handleResetCover}
+                  disabled={isUploadingCover}
+                  accessibilityRole="button"
+                >
+                  <Text
+                    style={[styles.coverActionText, { color: colors.danger }]}
+                  >
+                    {t.restoreCover}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-        )}
 
-        <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Version :</Text>
-          <Text style={styles.metaValue}>v{book.version}</Text>
+          <View style={styles.infoCol}>
+            <Text style={[styles.titre, { color: colors.textPrimary }]}>
+              {book.titre}
+            </Text>
+            <Text style={[styles.auteur, { color: colors.textSecondary }]}>
+              par {book.auteur}
+            </Text>
+
+            <View
+              style={[styles.metaBlock, { borderTopColor: colors.borderLight }]}
+            >
+              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                Éditeur :
+              </Text>
+              <Text style={[styles.metaValue, { color: colors.textPrimary }]}>
+                {book.editeur}
+              </Text>
+            </View>
+
+            <View
+              style={[styles.metaBlock, { borderTopColor: colors.borderLight }]}
+            >
+              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                Année :
+              </Text>
+              <Text style={[styles.metaValue, { color: colors.textPrimary }]}>
+                {book.annee}
+              </Text>
+            </View>
+
+            <View
+              style={[styles.metaBlock, { borderTopColor: colors.borderLight }]}
+            >
+              <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>
+                Version :
+              </Text>
+              <Text style={[styles.metaValue, { color: colors.textMuted }]}>
+                v{book.version}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Note interne 0 à 5 avec étoiles */}
+        <View
+          style={[styles.ratingRow, { borderTopColor: colors.borderLight }]}
+        >
+          <Text style={[styles.ratingLabel, { color: colors.textPrimary }]}>
+            {t.internalRating}
+          </Text>
+          <RatingStars
+            note={book.note}
+            onRate={(nouvelleNote) =>
+              setRating(nouvelleNote === 0 ? null : nouvelleNote)
+            }
+          />
         </View>
       </View>
 
-      {/* Actions sur l'ouvrage */}
+      {/* Bloc OpenLibrary (dégradation silencieuse) */}
+      <View
+        style={[
+          styles.openLibraryCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.olTitle, { color: colors.textPrimary }]}>
+          {t.openLibraryTitle}
+        </Text>
+        {isLoadingOL ? (
+          <ActivityIndicator
+            color={colors.primary}
+            style={{ marginVertical: 8 }}
+          />
+        ) : openLibraryData?.trouve ? (
+          <View style={styles.olContent}>
+            <Text style={[styles.olText, { color: colors.textSecondary }]}>
+              {t.openLibraryFound(
+                openLibraryData.nombreEditions,
+                openLibraryData.premiereAnneePublication,
+              )}
+            </Text>
+            {openLibraryData.couvertureSecoursUrl && !book.couverture && (
+              <Image
+                source={{ uri: openLibraryData.couvertureSecoursUrl }}
+                style={styles.olCover}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        ) : (
+          <Text style={[styles.olTextMuted, { color: colors.textMuted }]}>
+            {t.openLibraryNotFound}
+          </Text>
+        )}
+      </View>
+
+      {/* Boutons d'action Modifier / Supprimer */}
       <View style={styles.actions}>
         <Pressable
-          style={[styles.button, styles.editButton]}
+          style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={() => router.push(`/books/edit/${book.id}` as any)}
           disabled={countdown !== null}
           accessibilityRole="button"
-          accessibilityLabel="Modifier cet ouvrage"
+          accessibilityLabel={t.editBook}
         >
-          <Text style={styles.editButtonText}>Modifier la fiche</Text>
+          <Text style={styles.buttonTextWhite}>{t.editBook}</Text>
         </Pressable>
 
         <Pressable
           style={[
             styles.button,
-            styles.deleteButton,
-            countdown !== null && styles.disabledButton,
+            {
+              backgroundColor: colors.dangerBg,
+              borderColor: colors.dangerBorder,
+              borderWidth: 1,
+            },
+            countdown !== null && { opacity: 0.5 },
           ]}
           onPress={confirmDelete}
           disabled={countdown !== null}
           accessibilityRole="button"
-          accessibilityLabel="Supprimer cet ouvrage"
+          accessibilityLabel={t.deleteBook}
         >
-          <Text style={styles.deleteButtonText}>Supprimer l'ouvrage</Text>
+          <Text style={[styles.buttonTextDanger, { color: colors.danger }]}>
+            {t.deleteBook}
+          </Text>
         </Pressable>
       </View>
 
       {/* Section Notes de lecture */}
       <View style={styles.notesSection}>
-        <Text style={styles.notesSectionTitle}>
-          Notes de lecture ({notes.length})
+        <Text style={[styles.notesSectionTitle, { color: colors.textPrimary }]}>
+          {t.notesTitle(notes.length)}
         </Text>
 
-        {/* Formulaire d'ajout rapide */}
-        <View style={styles.noteInputCard}>
+        <View
+          style={[
+            styles.noteInputCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <TextInput
             style={[
               styles.textInput,
-              erreurNote ? styles.textInputError : null,
+              { color: colors.textPrimary },
+              erreurNote
+                ? { borderColor: colors.danger, borderWidth: 1 }
+                : null,
             ]}
-            placeholder="Ajouter une note de lecture de l'équipe (1000 car. max)..."
-            placeholderTextColor={theme.colors.textMuted}
+            placeholder={t.notePlaceholder}
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={3}
             value={contenuNote}
@@ -274,28 +487,39 @@ export default function BookDetailScreen() {
               if (erreurNote) setErreurNote(null);
             }}
             editable={!isAdding}
-            accessibilityLabel="Nouvelle note de lecture"
+            accessibilityLabel={t.notePlaceholder}
           />
 
-          {erreurNote && <Text style={styles.errorText}>{erreurNote}</Text>}
+          {erreurNote && (
+            <Text style={[styles.errorText, { color: colors.danger }]}>
+              {erreurNote}
+            </Text>
+          )}
 
-          <View style={styles.noteInputFooter}>
-            <Text style={styles.charCounter}>{contenuNote.length}/1000</Text>
+          <View
+            style={[
+              styles.noteInputFooter,
+              { borderTopColor: colors.borderLight },
+            ]}
+          >
+            <Text style={[styles.charCounter, { color: colors.textMuted }]}>
+              {contenuNote.length}/1000
+            </Text>
             <Pressable
               style={[
                 styles.addNoteButton,
-                (!contenuNote.trim() || isAdding) &&
-                  styles.addNoteButtonDisabled,
+                { backgroundColor: colors.primary },
+                (!contenuNote.trim() || isAdding) && { opacity: 0.4 },
               ]}
               onPress={handleAddNote}
               disabled={!contenuNote.trim() || isAdding}
               accessibilityRole="button"
-              accessibilityLabel="Publier la note"
+              accessibilityLabel={t.publishNote}
             >
               {isAdding ? (
-                <ActivityIndicator size="small" color={theme.colors.surface} />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.addNoteButtonText}>Publier la note</Text>
+                <Text style={styles.addNoteButtonText}>{t.publishNote}</Text>
               )}
             </Pressable>
           </View>
@@ -303,15 +527,11 @@ export default function BookDetailScreen() {
 
         {/* Liste des notes */}
         {isLoadingNotes ? (
-          <ActivityIndicator
-            color={theme.colors.primary}
-            style={{ marginTop: 20 }}
-          />
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
         ) : notes.length === 0 ? (
           <View style={styles.emptyNotes}>
-            <Text style={styles.emptyNotesText}>
-              Aucune note de lecture pour cet ouvrage. Partagez le premier avis
-              !
+            <Text style={[styles.emptyNotesText, { color: colors.textMuted }]}>
+              {t.noNotes}
             </Text>
           </View>
         ) : (
@@ -332,14 +552,12 @@ export default function BookDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   content: {
     padding: theme.spacing.lg,
     paddingBottom: 40,
   },
   undoBanner: {
-    backgroundColor: theme.colors.textPrimary,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     flexDirection: "row",
@@ -348,30 +566,26 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   undoText: {
-    color: theme.colors.surface,
     fontSize: 14,
     fontWeight: "500",
   },
   undoButton: {
-    backgroundColor: theme.colors.favorite,
     minHeight: theme.layout.minTouchTarget,
     paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.sm,
     justifyContent: "center",
   },
   undoButtonText: {
-    color: theme.colors.surface,
+    color: "#ffffff",
     fontWeight: "700",
     fontSize: 12,
   },
   card: {
-    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.xl,
+    padding: theme.spacing.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  topBar: {
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -383,21 +597,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.full,
     justifyContent: "center",
   },
-  badgeLu: {
-    backgroundColor: theme.colors.successBg,
-  },
-  badgeNonLu: {
-    backgroundColor: theme.colors.borderLight,
-  },
   badgeText: {
     fontSize: 13,
     fontWeight: "600",
-  },
-  badgeTextLu: {
-    color: theme.colors.success,
-  },
-  badgeTextNonLu: {
-    color: theme.colors.textSecondary,
   },
   heartButton: {
     minWidth: theme.layout.minTouchTarget,
@@ -405,47 +607,111 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.full,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.borderLight,
-  },
-  heartButtonActive: {
-    backgroundColor: theme.colors.favoriteBg,
-  },
-  heartButtonPressed: {
-    transform: [{ scale: 0.92 }],
   },
   heartIcon: {
     fontSize: 20,
   },
-  heartIconActive: {
-    fontSize: 22,
+  coverAndInfo: {
+    flexDirection: "row",
+    gap: theme.spacing.lg,
+  },
+  coverWrapper: {
+    width: 110,
+    alignItems: "center",
+  },
+  coverImage: {
+    width: 110,
+    height: 165,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: "#cbd5e1",
+  },
+  coverLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: theme.borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  coverButtons: {
+    marginTop: theme.spacing.sm,
+    gap: 4,
+    width: "100%",
+  },
+  coverActionBtn: {
+    minHeight: 32,
+    borderRadius: theme.borderRadius.sm,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  coverActionText: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  infoCol: {
+    flex: 1,
   },
   titre: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
   auteur: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
     fontStyle: "italic",
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   metaBlock: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   metaLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
   },
   metaValue: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+  },
+  ratingLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.textPrimary,
+  },
+  openLibraryCard: {
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    marginTop: theme.spacing.md,
+  },
+  olTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  olContent: {
+    gap: 8,
+  },
+  olText: {
+    fontSize: 13,
+  },
+  olTextMuted: {
+    fontSize: 13,
+    fontStyle: "italic",
+  },
+  olCover: {
+    width: 60,
+    height: 90,
+    borderRadius: theme.borderRadius.sm,
   },
   actions: {
     marginTop: theme.spacing.lg,
@@ -457,26 +723,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  editButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  editButtonText: {
-    color: theme.colors.surface,
+  buttonTextWhite: {
+    color: "#ffffff",
     fontSize: 15,
     fontWeight: "600",
   },
-  deleteButton: {
-    backgroundColor: theme.colors.dangerBg,
-    borderWidth: 1,
-    borderColor: theme.colors.dangerBorder,
-  },
-  deleteButtonText: {
-    color: theme.colors.danger,
+  buttonTextDanger: {
     fontSize: 15,
     fontWeight: "600",
-  },
-  disabledButton: {
-    opacity: 0.5,
   },
   notesSection: {
     marginTop: theme.spacing.xxl,
@@ -484,28 +738,20 @@ const styles = StyleSheet.create({
   notesSectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
   },
   noteInputCard: {
-    backgroundColor: theme.colors.surface,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     marginBottom: theme.spacing.lg,
   },
   textInput: {
-    minHeight: 80,
+    minHeight: 70,
     fontSize: 14,
-    color: theme.colors.textPrimary,
     textAlignVertical: "top",
   },
-  textInputError: {
-    borderColor: theme.colors.danger,
-  },
   errorText: {
-    color: theme.colors.danger,
     fontSize: 12,
     marginTop: 4,
   },
@@ -515,26 +761,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
     paddingTop: theme.spacing.sm,
   },
   charCounter: {
     fontSize: 12,
-    color: theme.colors.textMuted,
   },
   addNoteButton: {
-    backgroundColor: theme.colors.primary,
     minHeight: theme.layout.minTouchTarget,
     paddingHorizontal: theme.spacing.lg,
     borderRadius: theme.borderRadius.md,
     justifyContent: "center",
     alignItems: "center",
   },
-  addNoteButtonDisabled: {
-    backgroundColor: theme.colors.textMuted,
-  },
   addNoteButtonText: {
-    color: theme.colors.surface,
+    color: "#ffffff",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -543,7 +783,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyNotesText: {
-    color: theme.colors.textMuted,
     fontSize: 14,
     fontStyle: "italic",
     textAlign: "center",

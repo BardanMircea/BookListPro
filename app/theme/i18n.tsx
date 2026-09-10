@@ -24,6 +24,7 @@ export const translations = {
     notesTitle: (count: number) => `Notes de lecture (${count})`,
     publishNote: "Publier la note",
     noNotes: "Aucune note de lecture pour cet ouvrage.",
+    notePlaceholder: "Ajouter une note d’équipe (1000 car. max)...",
     internalRating: "Note interne :",
     openLibraryTitle: "Enrichissement bibliographique (OpenLibrary)",
     openLibraryFound: (editions: number, year?: number) =>
@@ -54,6 +55,7 @@ export const translations = {
     notesTitle: (count: number) => `Reading notes (${count})`,
     publishNote: "Post note",
     noNotes: "No reading notes yet for this book.",
+    notePlaceholder: "Add a staff note (1000 chars max)...",
     internalRating: "Internal rating:",
     openLibraryTitle: "Bibliographic data (OpenLibrary)",
     openLibraryFound: (editions: number, year?: number) =>
