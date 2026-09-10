@@ -7,8 +7,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 type BookCardProps = {
   livre: Livre;
   onPress: (id: string) => void;
-  onToggleLu: (id: string, lu: boolean) => void;
-  onToggleFavori: (id: string, favori: boolean) => void;
+  onToggleLu?: (id: string, lu: boolean) => void;
+  onToggleFavori?: (id: string, favori: boolean) => void;
 };
 
 const BookCardComponent: React.FC<BookCardProps> = ({
@@ -21,7 +21,6 @@ const BookCardComponent: React.FC<BookCardProps> = ({
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={() => onPress(livre.id)}
-      accessibilityRole="button"
       accessibilityLabel={`${livre.titre}, par ${livre.auteur}`}
     >
       <View style={styles.headerRow}>
@@ -39,7 +38,7 @@ const BookCardComponent: React.FC<BookCardProps> = ({
             ]}
             onPress={(e) => {
               e.stopPropagation();
-              onToggleFavori(livre.id, !livre.favori);
+              onToggleFavori?.(livre.id, !livre.favori);
             }}
             accessibilityRole="button"
             accessibilityLabel={
@@ -60,7 +59,7 @@ const BookCardComponent: React.FC<BookCardProps> = ({
             ]}
             onPress={(e) => {
               e.stopPropagation();
-              onToggleLu(livre.id, !livre.lu);
+              onToggleLu?.(livre.id, !livre.lu);
             }}
             accessibilityRole="button"
             accessibilityLabel={`Statut de lecture : ${livre.lu ? "Lu" : "À lire"}. Toucher pour modifier.`}

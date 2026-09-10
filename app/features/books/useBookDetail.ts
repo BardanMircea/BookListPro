@@ -16,9 +16,9 @@ export function useBookDetail(id: string) {
   const deleteMutation = useMutation<null, AppError, string>({
     mutationFn: (bookId) => booksService.delete(bookId),
     onSuccess: () => {
-      // Invalide la liste des livres et supprime la fiche du cache
+      // Invalide la liste des livres et marque la fiche comme obsolète sans la détruire du cache
       queryClient.invalidateQueries({ queryKey: bookKeys.lists() });
-      queryClient.removeQueries({ queryKey: bookKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: bookKeys.detail(id) });
     },
   });
 

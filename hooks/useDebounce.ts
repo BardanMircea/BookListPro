@@ -8,7 +8,7 @@ export function useDebounce<T>(value: T, delayMs: number = 300): T {
       setDebouncedValue(value);
     }, delayMs);
 
-    // Annule le timer précédent si la valeur change avant les 300 ms
+    // Annule le timer précédent si la valeur change avant le delay
     return () => {
       clearTimeout(handler);
     };

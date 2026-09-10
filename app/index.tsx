@@ -1,9 +1,10 @@
+import { theme } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useCallback } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -12,14 +13,16 @@ import { BookCard } from "../components/BookCard";
 import { BookSkeleton } from "../components/BookSkeleton";
 import { EmptyView } from "../components/EmptyView";
 import { ErrorView } from "../components/ErrorView";
+import { BookFiltersBar } from "./features/books/BookFiltersBar";
 import { useBooks } from "./features/books/useBooks";
-import { useToggleLu } from "./features/books/useToggleLu";
+import { useOptimisticBookToggles } from "./features/books/useOptimisticBookToggles";
 
 export default function BooksListScreen() {
   const router = useRouter();
   const {
     books,
     pagination,
+    setFilters,
     isLoading,
     isFetching,
     isError,
@@ -28,53 +31,59 @@ export default function BooksListScreen() {
     refetch,
   } = useBooks();
 
-  const toggleLuMutation = useToggleLu();
+  const { toggleLu, toggleFavori } = useOptimisticBookToggles();
 
-  // Navigation vers la fiche détaillée
-  const handlePressBook = (id: string) => {
-    router.push(`/books/${id}`);
-  };
+  // useCallback conserve la même référence de fonction en mémoire :
+  // combiné avec React.memo sur BookCard, cela garantit 0 rendu superflu
+  const handlePressBook = useCallback(
+    (id: string) => {
+      router.push(`/books/${id}`);
+    },
+    [router],
+  );
 
-  // Basculement rapide du statut lu/non-lu
-  const handleToggleLu = (id: string, nextLu: boolean) => {
-    toggleLuMutation.mutate({ id, lu: nextLu });
-  };
+  const handleToggleLu = useCallback(
+    (id: string, lu: boolean) => {
+      toggleLu(id, lu);
+    },
+    [toggleLu],
+  );
 
-  // 1. État chargement initial -> Squelette
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <BookSkeleton count={6} />
-      </View>
-    );
-  }
+  const handleToggleFavori = useCallback(
+    (id: string, favori: boolean) => {
+      toggleFavori(id, favori);
+    },
+    [toggleFavori],
+  );
 
-  // 2. État erreur -> Composant avec bouton réessai
-  if (isError) {
-    return (
-      <View style={styles.container}>
-        <ErrorView error={error} onRetry={refetch} />
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return <BookSkeleton count={6} />;
+    }
 
-  // 3. État vide -> Message adapté + action d'ajout
-  if (isEmpty) {
-    return (
-      <View style={styles.container}>
+    if (isError) {
+      return <ErrorView error={error} onRetry={refetch} />;
+    }
+
+    if (isEmpty) {
+      return (
         <EmptyView
-          titre="Aucun ouvrage répertorié"
-          description="Votre fonds est actuellement vide. Commencez par enregistrer un premier livre."
-          actionLabel="Ajouter un ouvrage"
-          onAction={() => router.push("/books/new")}
+          titre="Aucun résultat"
+          description="Aucun ouvrage ne correspond à vos critères de recherche ou filtres."
+          actionLabel="Réinitialiser les filtres"
+          onAction={() =>
+            setFilters({
+              q: undefined,
+              status: undefined,
+              favori: undefined,
+              page: 1,
+            })
+          }
         />
-      </View>
-    );
-  }
+      );
+    }
 
-  // 4. État succès -> Liste paginée
-  return (
-    <View style={styles.container}>
+    return (
       <FlatList
         data={books}
         keyExtractor={(item) => item.id}
@@ -83,15 +92,10 @@ export default function BooksListScreen() {
             livre={item}
             onPress={handlePressBook}
             onToggleLu={handleToggleLu}
+            onToggleFavori={handleToggleFavori}
           />
         )}
         contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={refetch}
-          />
-        }
         ListFooterComponent={
           <View style={styles.paginationBar}>
             <Pressable
@@ -101,6 +105,8 @@ export default function BooksListScreen() {
               ]}
               onPress={pagination.previousPage}
               disabled={!pagination.hasPrevious}
+              accessibilityRole="button"
+              accessibilityLabel="Page précédente"
             >
               <Text
                 style={[
@@ -112,9 +118,18 @@ export default function BooksListScreen() {
               </Text>
             </Pressable>
 
-            <Text style={styles.pageInfo}>
-              Page {pagination.currentPage} / {pagination.totalPages}
-            </Text>
+            <View style={styles.pageInfoContainer}>
+              <Text style={styles.pageInfo}>
+                Page {pagination.currentPage} / {pagination.totalPages}
+              </Text>
+              {isFetching && !isLoading && (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.primary}
+                  style={{ marginLeft: 6 }}
+                />
+              )}
+            </View>
 
             <Pressable
               style={[
@@ -123,6 +138,8 @@ export default function BooksListScreen() {
               ]}
               onPress={pagination.nextPage}
               disabled={!pagination.hasNext}
+              accessibilityRole="button"
+              accessibilityLabel="Page suivante"
             >
               <Text
                 style={[
@@ -136,8 +153,17 @@ export default function BooksListScreen() {
           </View>
         }
       />
+    );
+  };
 
-      {/* Bouton d'action flottant pour ajouter un livre */}
+  return (
+    <View style={styles.container}>
+      {/* Barre de filtres isolée pour éviter les re-renders de liste à chaque frappe */}
+      <BookFiltersBar onFiltersChange={setFilters} />
+
+      {renderContent()}
+
+      {/* Bouton d'action flottant */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => router.push("/books/new")}
@@ -153,41 +179,46 @@ export default function BooksListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: theme.colors.background,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 80, // Laisse de l'espace pour le bouton flottant
+    padding: theme.spacing.lg,
+    paddingBottom: 80,
   },
   paginationBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    marginTop: 8,
+    paddingVertical: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    borderTopColor: theme.colors.border,
   },
   pageButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#1e293b",
-    borderRadius: 6,
+    minHeight: theme.layout.minTouchTarget,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: theme.borderRadius.md,
+    justifyContent: "center",
   },
   pageButtonDisabled: {
-    backgroundColor: "#e2e8f0",
+    backgroundColor: theme.colors.border,
   },
   pageButtonText: {
-    color: "#ffffff",
+    color: theme.colors.surface,
     fontSize: 13,
     fontWeight: "600",
   },
   pageButtonTextDisabled: {
-    color: "#94a3b8",
+    color: theme.colors.textMuted,
+  },
+  pageInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   pageInfo: {
     fontSize: 13,
-    color: "#64748b",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   fab: {
@@ -197,21 +228,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#0284c7",
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   fabPressed: {
-    backgroundColor: "#0369a1",
+    backgroundColor: theme.colors.primaryHover,
   },
   fabText: {
     fontSize: 28,
-    color: "#ffffff",
+    color: theme.colors.surface,
     lineHeight: 30,
     fontWeight: "300",
   },
