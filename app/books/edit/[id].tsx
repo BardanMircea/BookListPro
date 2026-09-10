@@ -1,3 +1,11 @@
+import { AppError } from "@/app/domain/errors";
+import { Livre } from "@/app/domain/livre";
+import { BookForm } from "@/app/features/books/BookForm";
+import { bookKeys } from "@/app/features/books/bookKeys";
+import { booksService } from "@/app/services/api/booksService";
+import { useAppTheme } from "@/app/theme/ThemeContext";
+import { useI18n } from "@/app/theme/i18n";
+import { theme } from "@/constants/theme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -11,15 +19,13 @@ import {
 } from "react-native";
 import { BookSkeleton } from "../../../components/BookSkeleton";
 import { ErrorView } from "../../../components/ErrorView";
-import { AppError } from "../../domain/errors";
-import { Livre, LivreFormData } from "../../domain/livre";
-import { BookForm } from "../../features/books/BookForm";
-import { bookKeys } from "../../features/books/bookKeys";
-import { booksService } from "../../services/api/booksService";
 
 export default function EditBookScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { colors } = useAppTheme();
+  const { t, language } = useI18n();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const bookId = Array.isArray(id) ? id[0] : id;
 
@@ -41,20 +47,28 @@ export default function EditBookScreen() {
   // 2. Mutation de mise à jour avec gestion de l'en-tête If-Match (version)
   const updateMutation = useMutation<Livre, AppError, LivreFormData>({
     mutationFn: (formData) => {
-      if (!book)
-        throw { type: "RESEAU", message: "Livre non chargé" } as AppError;
+      if (!book) {
+        throw {
+          type: "RESEAU",
+          message: language === "fr" ? "Livre non chargé" : "Book not loaded",
+        } as AppError;
+      }
       return booksService.update(bookId, formData, book.version);
     },
     onSuccess: (updatedBook) => {
       queryClient.setQueryData(bookKeys.detail(bookId), updatedBook);
       queryClient.invalidateQueries({ queryKey: bookKeys.lists() });
 
-      const successMsg = "Ouvrage mis à jour avec succès.";
+      const successMsg =
+        language === "fr"
+          ? "Ouvrage mis à jour avec succès."
+          : "Book updated successfully.";
+
       if (Platform.OS === "web") {
         window.alert(successMsg);
         router.back();
       } else {
-        Alert.alert("Succès", successMsg, [
+        Alert.alert(language === "fr" ? "Succès" : "Success", successMsg, [
           { text: "OK", onPress: () => router.back() },
         ]);
       }
@@ -62,13 +76,17 @@ export default function EditBookScreen() {
     onError: (err) => {
       if (err.type === "CONFLIT") {
         setServerError(
-          "Conflit détecté : ce livre a été modifié par ailleurs. Rechargez la fiche.",
+          language === "fr"
+            ? "Conflit détecté : ce livre a été modifié par ailleurs. Rechargez la fiche."
+            : "Conflict detected: this book was modified elsewhere. Please reload.",
         );
       } else if (err.type === "VALIDATION" && err.champs) {
         const details = Object.entries(err.champs)
           .map(([champ, msg]) => `${champ} : ${msg}`)
           .join("\n");
-        setServerError(`Erreur de validation :\n${details}`);
+        setServerError(
+          `${language === "fr" ? "Erreur de validation" : "Validation error"} :\n${details}`,
+        );
       } else {
         setServerError(err.message);
       }
@@ -77,7 +95,7 @@ export default function EditBookScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <BookSkeleton count={1} />
       </View>
     );
@@ -85,17 +103,23 @@ export default function EditBookScreen() {
 
   if (isError || !book) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ErrorView error={error} onRetry={refetch} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.versionTag}>
-        Édition de la version {book.version}
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <Text style={[styles.versionTag, { color: colors.textMuted }]}>
+        {language === "fr"
+          ? `Édition de la version ${book.version}`
+          : `Editing version ${book.version}`}
       </Text>
+
       <BookForm
         defaultValues={{
           titre: book.titre,
@@ -108,7 +132,7 @@ export default function EditBookScreen() {
           setServerError(null);
           await updateMutation.mutateAsync(data);
         }}
-        submitLabel="Enregistrer les modifications"
+        submitLabel={t.editBook}
         isSubmitting={updateMutation.isPending}
         serverError={serverError}
       />
@@ -119,15 +143,14 @@ export default function EditBookScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
   },
   content: {
-    padding: 16,
+    padding: theme.spacing.lg,
   },
   versionTag: {
     fontSize: 12,
-    color: "#64748b",
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
     textAlign: "right",
+    fontWeight: "500",
   },
 });

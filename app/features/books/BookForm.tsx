@@ -10,16 +10,24 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { z } from "zod";
-import { LivreFormData, LivreFormSchema } from "../../domain/livre";
+import { LivreFormData, LivreSchema } from "../../domain/livre";
 
-// z.input = type attendu en entrée du formulaire (avec les champs optionnels ou avec default)
-// z.output = type garanti après validation (LivreFormData, avec tous les champs requis)
-type LivreFormInput = z.input<typeof LivreFormSchema>;
+import { theme } from "@/constants/theme";
+import { useAppTheme } from "../../theme/ThemeContext";
+import { useI18n } from "../../theme/i18n";
+
+// Schéma de formulaire dérivé (champs éditables)
+const FormSchema = LivreSchema.pick({
+  titre: true,
+  auteur: true,
+  editeur: true,
+  annee: true,
+  lu: true,
+});
 
 type BookFormProps = {
   defaultValues?: Partial<LivreFormData>;
-  onSubmit: (data: LivreFormData) => Promise<void>;
+  onSubmit: (data: LivreFormData) => Promise<void> | void;
   submitLabel: string;
   isSubmitting: boolean;
   serverError?: string | null;
@@ -32,14 +40,31 @@ export const BookForm: React.FC<BookFormProps> = ({
   isSubmitting,
   serverError,
 }) => {
-  // En passant <LivreFormInput, any, LivreFormData>, on dit explicitement à react-hook-form :
-  // "Les champs du formulaire acceptent LivreFormInput, et après validation via Zod, on obtient LivreFormData"
+  const { colors } = useAppTheme();
+  const { language } = useI18n();
+
+  const isFr = language === "fr";
+
+  const labels = {
+    titre: isFr ? "Titre de l’ouvrage" : "Book title",
+    titrePlaceholder: isFr
+      ? "Ex. Le Rouge et le Noir"
+      : "e.g. The Red and the Black",
+    auteur: isFr ? "Auteur" : "Author",
+    auteurPlaceholder: isFr ? "Ex. Stendhal" : "e.g. Stendhal",
+    editeur: isFr ? "Éditeur" : "Publisher",
+    editeurPlaceholder: isFr ? "Ex. Gallimard" : "e.g. Penguin Books",
+    annee: isFr ? "Année de publication" : "Publication year",
+    anneePlaceholder: isFr ? "Ex. 1830" : "e.g. 1830",
+    lu: isFr ? "Ouvrage lu par l’équipe" : "Read by the bookstore team",
+  };
+
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LivreFormInput, any, LivreFormData>({
-    resolver: zodResolver(LivreFormSchema),
+  } = useForm<LivreFormData>({
+    resolver: zodResolver(FormSchema),
     defaultValues: {
       titre: defaultValues?.titre ?? "",
       auteur: defaultValues?.auteur ?? "",
@@ -50,120 +75,191 @@ export const BookForm: React.FC<BookFormProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+      ]}
+    >
+      {/* Erreur globale du serveur (ex. 409 conflit ou validation serveur) */}
       {serverError && (
-        <View style={styles.serverErrorBanner}>
-          <Text style={styles.serverErrorText}>{serverError}</Text>
+        <View
+          style={[
+            styles.serverErrorBox,
+            {
+              backgroundColor: colors.dangerBg,
+              borderColor: colors.dangerBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.serverErrorText, { color: colors.danger }]}>
+            {serverError}
+          </Text>
         </View>
       )}
 
-      {/* Champ Titre */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Titre *</Text>
+      {/* Titre */}
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>
+          {labels.titre} *
+        </Text>
         <Controller
           control={control}
           name="titre"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={[styles.input, errors.titre && styles.inputError]}
-              placeholder="Ex: Le Comte de Monte-Cristo"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: errors.titre ? colors.danger : colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder={labels.titrePlaceholder}
+              placeholderTextColor={colors.textMuted}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
               editable={!isSubmitting}
+              accessibilityLabel={labels.titre}
             />
           )}
         />
         {errors.titre && (
-          <Text style={styles.errorText}>{errors.titre.message}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {errors.titre.message}
+          </Text>
         )}
       </View>
 
-      {/* Champ Auteur */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Auteur *</Text>
+      {/* Auteur */}
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>
+          {labels.auteur} *
+        </Text>
         <Controller
           control={control}
           name="auteur"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={[styles.input, errors.auteur && styles.inputError]}
-              placeholder="Ex: Alexandre Dumas"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: errors.auteur ? colors.danger : colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder={labels.auteurPlaceholder}
+              placeholderTextColor={colors.textMuted}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
               editable={!isSubmitting}
+              accessibilityLabel={labels.auteur}
             />
           )}
         />
         {errors.auteur && (
-          <Text style={styles.errorText}>{errors.auteur.message}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {errors.auteur.message}
+          </Text>
         )}
       </View>
 
-      {/* Champ Éditeur */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Éditeur *</Text>
+      {/* Éditeur */}
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>
+          {labels.editeur} *
+        </Text>
         <Controller
           control={control}
           name="editeur"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={[styles.input, errors.editeur && styles.inputError]}
-              placeholder="Ex: Gallimard"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: errors.editeur ? colors.danger : colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder={labels.editeurPlaceholder}
+              placeholderTextColor={colors.textMuted}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
               editable={!isSubmitting}
+              accessibilityLabel={labels.editeur}
             />
           )}
         />
         {errors.editeur && (
-          <Text style={styles.errorText}>{errors.editeur.message}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {errors.editeur.message}
+          </Text>
         )}
       </View>
 
-      {/* Champ Année */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Année de parution *</Text>
+      {/* Année */}
+      <View style={styles.formGroup}>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>
+          {labels.annee} *
+        </Text>
         <Controller
           control={control}
           name="annee"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={[styles.input, errors.annee && styles.inputError]}
-              placeholder="Ex: 1844"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: errors.annee ? colors.danger : colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
+              placeholder={labels.anneePlaceholder}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               onBlur={onBlur}
               onChangeText={(text) => {
                 const parsed = parseInt(text, 10);
                 onChange(isNaN(parsed) ? 0 : parsed);
               }}
-              value={
-                value !== undefined && value !== null ? value.toString() : ""
-              }
+              value={value ? value.toString() : ""}
               editable={!isSubmitting}
+              accessibilityLabel={labels.annee}
             />
           )}
         />
         {errors.annee && (
-          <Text style={styles.errorText}>{errors.annee.message}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {errors.annee.message}
+          </Text>
         )}
       </View>
 
-      {/* Switch Statut Lu */}
-      <View style={styles.switchRow}>
-        <Text style={styles.label}>Ouvrage lu par l'équipe</Text>
+      {/* Statut Lu */}
+      <View
+        style={[styles.switchGroup, { borderTopColor: colors.borderLight }]}
+      >
+        <Text style={[styles.switchLabel, { color: colors.textPrimary }]}>
+          {labels.lu}
+        </Text>
         <Controller
           control={control}
           name="lu"
           render={({ field: { onChange, value } }) => (
             <Switch
-              value={Boolean(value)}
+              value={value}
               onValueChange={onChange}
               disabled={isSubmitting}
-              trackColor={{ false: "#cbd5e1", true: "#86efac" }}
-              thumbColor={value ? "#15803d" : "#f8fafc"}
+              trackColor={{ false: colors.border, true: colors.primaryHover }}
+              thumbColor={value ? colors.primary : colors.borderLight}
+              accessibilityLabel={labels.lu}
             />
           )}
         />
@@ -171,12 +267,15 @@ export const BookForm: React.FC<BookFormProps> = ({
 
       {/* Bouton de validation */}
       <Pressable
-        style={[
+        style={({ pressed }) => [
           styles.submitButton,
-          isSubmitting && styles.submitButtonDisabled,
+          { backgroundColor: colors.primary },
+          (isSubmitting || pressed) && { opacity: 0.8 },
         ]}
-        onPress={handleSubmit((data) => onSubmit(data))}
+        onPress={handleSubmit(onSubmit)}
         disabled={isSubmitting}
+        accessibilityRole="button"
+        accessibilityLabel={submitLabel}
       >
         {isSubmitting ? (
           <ActivityIndicator color="#ffffff" />
@@ -190,76 +289,63 @@ export const BookForm: React.FC<BookFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 20,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
   },
-  serverErrorBanner: {
-    backgroundColor: "#fee2e2",
-    borderColor: "#fca5a5",
+  serverErrorBox: {
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 16,
+    marginBottom: theme.spacing.lg,
   },
   serverErrorText: {
-    color: "#b91c1c",
     fontSize: 13,
-    fontWeight: "500",
+    lineHeight: 18,
   },
-  fieldGroup: {
-    marginBottom: 16,
+  formGroup: {
+    marginBottom: theme.spacing.lg,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#334155",
-    marginBottom: 6,
+    marginBottom: theme.spacing.xs,
   },
   input: {
+    minHeight: theme.layout.minTouchTarget,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: "#0f172a",
-    backgroundColor: "#f8fafc",
-  },
-  inputError: {
-    borderColor: "#ef4444",
-    backgroundColor: "#fff5f5",
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    fontSize: 14,
   },
   errorText: {
-    color: "#dc2626",
     fontSize: 12,
-    marginTop: 4,
-    fontWeight: "500",
+    marginTop: theme.spacing.xs,
   },
-  switchRow: {
+  switchGroup: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginVertical: 12,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
+    paddingRight: theme.spacing.md,
   },
   submitButton: {
-    backgroundColor: "#0284c7",
-    paddingVertical: 14,
-    borderRadius: 6,
+    minHeight: theme.layout.minTouchTarget,
+    borderRadius: theme.borderRadius.lg,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
-  },
-  submitButtonDisabled: {
-    backgroundColor: "#94a3b8",
+    marginTop: theme.spacing.sm,
   },
   submitButtonText: {
     color: "#ffffff",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
   },
 });
