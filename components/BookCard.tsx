@@ -1,8 +1,10 @@
-// components/BookCard.tsx
 import { Livre } from "@/app/domain/livre";
+import { resolveCoverUrl } from "@/app/services/imageResolver";
+import { useI18n } from "@/app/theme/i18n";
+import { useAppTheme } from "@/app/theme/ThemeContext";
 import { theme } from "@/constants/theme";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 type BookCardProps = {
   livre: Livre;
@@ -17,110 +19,150 @@ const BookCardComponent: React.FC<BookCardProps> = ({
   onToggleLu,
   onToggleFavori,
 }) => {
+  const { colors } = useAppTheme();
+  const { t } = useI18n();
+
+  const coverUrl = resolveCoverUrl(livre.couverture);
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
       onPress={() => onPress(livre.id)}
-      accessibilityLabel={`${livre.titre}, par ${livre.auteur}`}
+      accessibilityLabel={`${livre.titre}, ${livre.auteur}`}
     >
-      <View style={styles.headerRow}>
-        <Text style={styles.titre} numberOfLines={2}>
-          {livre.titre}
-        </Text>
+      {/* Vignette de couverture (exigence Lot 3) */}
+      <Image
+        source={{ uri: coverUrl }}
+        style={styles.thumbnail}
+        resizeMode="cover"
+      />
 
-        <View style={styles.actionsTop}>
-          {/* Coup de cœur optimiste (Zone tactile ≥ 44 pt) */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.heartButton,
-              livre.favori && styles.heartButtonActive,
-              pressed && styles.heartButtonPressed,
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggleFavori?.(livre.id, !livre.favori);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              livre.favori
-                ? `Retirer ${livre.titre} des coups de cœur`
-                : `Ajouter ${livre.titre} aux coups de cœur`
-            }
-            accessibilityState={{ selected: livre.favori }}
+      <View style={styles.content}>
+        <View style={styles.headerRow}>
+          <Text
+            style={[styles.titre, { color: colors.textPrimary }]}
+            numberOfLines={2}
           >
-            <Text style={styles.heartIcon}>{livre.favori ? "❤️" : "🤍"}</Text>
-          </Pressable>
+            {livre.titre}
+          </Text>
 
-          {/* Badge Lu optimiste */}
-          <Pressable
-            style={[
-              styles.badge,
-              livre.lu ? styles.badgeLu : styles.badgeNonLu,
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggleLu?.(livre.id, !livre.lu);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Statut de lecture : ${livre.lu ? "Lu" : "À lire"}. Toucher pour modifier.`}
-          >
-            <Text
-              style={[
-                styles.badgeText,
-                livre.lu ? styles.badgeTextLu : styles.badgeTextNonLu,
+          <View style={styles.actionsTop}>
+            {/* Coup de cœur optimiste */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.heartButton,
+                {
+                  backgroundColor: livre.favori
+                    ? colors.favoriteBg
+                    : colors.borderLight,
+                },
+                pressed && { transform: [{ scale: 0.9 }] },
               ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleFavori?.(livre.id, !livre.favori);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                livre.favori ? "Retirer favori" : "Ajouter favori"
+              }
+              accessibilityState={{ selected: livre.favori }}
             >
-              {livre.lu ? "Lu" : "À lire"}
-            </Text>
-          </Pressable>
+              <Text style={styles.heartIcon}>{livre.favori ? "❤️" : "🤍"}</Text>
+            </Pressable>
+
+            {/* Badge Lu optimiste */}
+            <Pressable
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: livre.lu
+                    ? colors.successBg
+                    : colors.borderLight,
+                },
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleLu?.(livre.id, !livre.lu);
+              }}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.badgeText,
+                  { color: livre.lu ? colors.success : colors.textSecondary },
+                ]}
+              >
+                {livre.lu ? t.readStatusRead : t.readStatusToRead}
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      <Text style={styles.auteur}>{livre.auteur}</Text>
-
-      <View style={styles.footerRow}>
-        <Text style={styles.details}>
-          {livre.editeur} • {livre.annee}
+        <Text style={[styles.auteur, { color: colors.textSecondary }]}>
+          {livre.auteur}
         </Text>
-        {livre.note !== null && (
-          <Text style={styles.note}>★ {livre.note.toFixed(1)}/5</Text>
-        )}
+
+        <View
+          style={[styles.footerRow, { borderTopColor: colors.borderLight }]}
+        >
+          <Text style={[styles.details, { color: colors.textMuted }]}>
+            {livre.editeur} • {livre.annee}
+          </Text>
+          {livre.note !== null && (
+            <Text style={[styles.note, { color: colors.warning }]}>
+              ★ {livre.note.toFixed(1)}/5
+            </Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
 };
 
-// React.memo évite de recalculer ce composant si ses props (livre, callbacks) ne changent pas
 export const BookCard = React.memo(BookCardComponent);
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    flexDirection: "row",
+    gap: theme.spacing.md,
   },
-  cardPressed: {
-    backgroundColor: theme.colors.borderLight,
+  thumbnail: {
+    width: 60,
+    height: 90,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: "#cbd5e1",
+  },
+  content: {
+    flex: 1,
+    justifyContent: "space-between",
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   titre: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
     flex: 1,
   },
   actionsTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.xs,
+    gap: 4,
   },
   heartButton: {
     minWidth: theme.layout.minTouchTarget,
@@ -129,14 +171,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  heartButtonActive: {
-    backgroundColor: theme.colors.favoriteBg,
-  },
-  heartButtonPressed: {
-    transform: [{ scale: 0.9 }],
-  },
   heartIcon: {
-    fontSize: 18,
+    fontSize: 16,
   },
   badge: {
     minHeight: theme.layout.minTouchTarget,
@@ -144,44 +180,28 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.full,
     justifyContent: "center",
   },
-  badgeLu: {
-    backgroundColor: theme.colors.successBg,
-  },
-  badgeNonLu: {
-    backgroundColor: theme.colors.borderLight,
-  },
   badgeText: {
     fontSize: 12,
     fontWeight: "600",
   },
-  badgeTextLu: {
-    color: theme.colors.success,
-  },
-  badgeTextNonLu: {
-    color: theme.colors.textSecondary,
-  },
   auteur: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 13,
+    marginTop: 2,
     fontStyle: "italic",
   },
   footerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    paddingTop: theme.spacing.sm,
+    paddingTop: 6,
   },
   details: {
-    fontSize: 13,
-    color: theme.colors.textMuted,
+    fontSize: 12,
   },
   note: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: theme.colors.warning,
   },
 });

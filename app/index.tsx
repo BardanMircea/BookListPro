@@ -1,3 +1,4 @@
+// app/index.tsx
 import { theme } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
@@ -16,9 +17,14 @@ import { ErrorView } from "../components/ErrorView";
 import { BookFiltersBar } from "./features/books/BookFiltersBar";
 import { useBooks } from "./features/books/useBooks";
 import { useOptimisticBookToggles } from "./features/books/useOptimisticBookToggles";
+import { useAppTheme } from "./theme/ThemeContext";
+import { useI18n } from "./theme/i18n";
 
 export default function BooksListScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const { t } = useI18n();
+
   const {
     books,
     pagination,
@@ -33,8 +39,6 @@ export default function BooksListScreen() {
 
   const { toggleLu, toggleFavori } = useOptimisticBookToggles();
 
-  // useCallback conserve la même référence de fonction en mémoire :
-  // combiné avec React.memo sur BookCard, cela garantit 0 rendu superflu
   const handlePressBook = useCallback(
     (id: string) => {
       router.push(`/books/${id}`);
@@ -69,8 +73,8 @@ export default function BooksListScreen() {
       return (
         <EmptyView
           titre="Aucun résultat"
-          description="Aucun ouvrage ne correspond à vos critères de recherche ou filtres."
-          actionLabel="Réinitialiser les filtres"
+          description="Aucun ouvrage ne correspond à vos critères."
+          actionLabel="Réinitialiser"
           onAction={() =>
             setFilters({
               q: undefined,
@@ -97,35 +101,39 @@ export default function BooksListScreen() {
         )}
         contentContainerStyle={styles.listContent}
         ListFooterComponent={
-          <View style={styles.paginationBar}>
+          <View
+            style={[styles.paginationBar, { borderTopColor: colors.border }]}
+          >
             <Pressable
               style={[
                 styles.pageButton,
-                !pagination.hasPrevious && styles.pageButtonDisabled,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+                !pagination.hasPrevious && { opacity: 0.4 },
               ]}
               onPress={pagination.previousPage}
               disabled={!pagination.hasPrevious}
               accessibilityRole="button"
-              accessibilityLabel="Page précédente"
+              accessibilityLabel={t.previous}
             >
               <Text
-                style={[
-                  styles.pageButtonText,
-                  !pagination.hasPrevious && styles.pageButtonTextDisabled,
-                ]}
+                style={[styles.pageButtonText, { color: colors.textPrimary }]}
               >
-                Précédent
+                {t.previous}
               </Text>
             </Pressable>
 
             <View style={styles.pageInfoContainer}>
-              <Text style={styles.pageInfo}>
-                Page {pagination.currentPage} / {pagination.totalPages}
+              <Text style={[styles.pageInfo, { color: colors.textSecondary }]}>
+                {t.pageInfo(pagination.currentPage, pagination.totalPages)}
               </Text>
               {isFetching && !isLoading && (
                 <ActivityIndicator
                   size="small"
-                  color={theme.colors.primary}
+                  color={colors.primary}
                   style={{ marginLeft: 6 }}
                 />
               )}
@@ -134,20 +142,22 @@ export default function BooksListScreen() {
             <Pressable
               style={[
                 styles.pageButton,
-                !pagination.hasNext && styles.pageButtonDisabled,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                },
+                !pagination.hasNext && { opacity: 0.4 },
               ]}
               onPress={pagination.nextPage}
               disabled={!pagination.hasNext}
               accessibilityRole="button"
-              accessibilityLabel="Page suivante"
+              accessibilityLabel={t.next}
             >
               <Text
-                style={[
-                  styles.pageButtonText,
-                  !pagination.hasNext && styles.pageButtonTextDisabled,
-                ]}
+                style={[styles.pageButtonText, { color: colors.textPrimary }]}
               >
-                Suivant
+                {t.next}
               </Text>
             </Pressable>
           </View>
@@ -157,18 +167,21 @@ export default function BooksListScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Barre de filtres isolée pour éviter les re-renders de liste à chaque frappe */}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <BookFiltersBar onFiltersChange={setFilters} />
 
       {renderContent()}
 
-      {/* Bouton d'action flottant */}
+      {/* FAB Ajout */}
       <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        style={({ pressed }) => [
+          styles.fab,
+          { backgroundColor: colors.primary },
+          pressed && { opacity: 0.8 },
+        ]}
         onPress={() => router.push("/books/new")}
         accessibilityRole="button"
-        accessibilityLabel="Ajouter un ouvrage"
+        accessibilityLabel={t.addBook}
       >
         <Text style={styles.fabText}>+</Text>
       </Pressable>
@@ -179,7 +192,6 @@ export default function BooksListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   listContent: {
     padding: theme.spacing.lg,
@@ -192,25 +204,16 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.lg,
     marginTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
   pageButton: {
     minHeight: theme.layout.minTouchTarget,
     paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.textPrimary,
     borderRadius: theme.borderRadius.md,
     justifyContent: "center",
   },
-  pageButtonDisabled: {
-    backgroundColor: theme.colors.border,
-  },
   pageButtonText: {
-    color: theme.colors.surface,
     fontSize: 13,
     fontWeight: "600",
-  },
-  pageButtonTextDisabled: {
-    color: theme.colors.textMuted,
   },
   pageInfoContainer: {
     flexDirection: "row",
@@ -218,7 +221,6 @@ const styles = StyleSheet.create({
   },
   pageInfo: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   fab: {
@@ -228,17 +230,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 4,
   },
-  fabPressed: {
-    backgroundColor: theme.colors.primaryHover,
-  },
   fabText: {
     fontSize: 28,
-    color: theme.colors.surface,
+    color: "#ffffff",
     lineHeight: 30,
     fontWeight: "300",
   },
