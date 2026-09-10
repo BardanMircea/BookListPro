@@ -1,5 +1,5 @@
 import { AppError } from "@/app/domain/errors";
-import { Livre } from "@/app/domain/livre";
+import { Livre, LivreFormData } from "@/app/domain/livre";
 import { BookForm } from "@/app/features/books/BookForm";
 import { bookKeys } from "@/app/features/books/bookKeys";
 import { booksService } from "@/app/services/api/booksService";
