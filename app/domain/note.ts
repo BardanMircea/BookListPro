@@ -1,3 +1,4 @@
+import { NOTE_MAX_LENGTH } from "@/constants/constants";
 import { z } from "zod";
 
 export const NoteSchema = z.object({
@@ -6,7 +7,7 @@ export const NoteSchema = z.object({
   contenu: z
     .string()
     .min(1, "Le contenu est requis")
-    .max(1000, "1000 caractères maximum"),
+    .max(NOTE_MAX_LENGTH, `${NOTE_MAX_LENGTH} caractères maximum`),
   createdAt: z.string().datetime(),
 });
 
@@ -18,7 +19,7 @@ export const NoteCreateSchema = z.object({
   contenu: z
     .string()
     .min(1, "La note ne peut pas être vide")
-    .max(1000, "1000 caractères maximum"),
+    .max(NOTE_MAX_LENGTH, `${NOTE_MAX_LENGTH} caractères maximum`),
 });
 
 export type NoteCreateData = z.infer<typeof NoteCreateSchema>;

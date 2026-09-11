@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet } from "react-native";
+import { BookForm } from "../../components/BookForm";
 import { AppError } from "../domain/errors";
 import { LivreFormData } from "../domain/livre";
-import { BookForm } from "../features/books/BookForm";
-import { bookKeys } from "../features/books/bookKeys";
+import { bookKeys } from "@/constants/constants";
 import { booksService } from "../services/api/booksService";
 
 export default function NewBookScreen() {

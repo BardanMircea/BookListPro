@@ -1,8 +1,5 @@
-const API_BASE_URL = "http://localhost:3000";
-
-// SVG encodé ou placeholder par défaut propre pour les ouvrages sans image
-export const DEFAULT_BOOK_COVER =
-  "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=300&q=80";
+import { API_BASE_URL, DEFAULT_BOOK_COVER } from "@/constants/constants";
+export { DEFAULT_BOOK_COVER } from "@/constants/constants";
 
 /**
  * Résout une couverture selon les 3 cas exigés :

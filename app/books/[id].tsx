@@ -1,4 +1,11 @@
-import { theme } from "@/constants/theme";
+import {
+  DELETE_DELAY_SECONDS,
+  DELETE_DELAY_MS,
+  SECOND_MS,
+  NOTE_MAX_LENGTH,
+  theme,
+  bookKeys,
+} from "@/constants/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -18,16 +25,15 @@ import { BookSkeleton } from "../../components/BookSkeleton";
 import { ErrorView } from "../../components/ErrorView";
 import { NoteItem } from "../../components/NoteItem";
 import { RatingStars } from "../../components/RatingStars";
-import { bookKeys } from "../features/books/bookKeys";
-import { useBookDetail } from "../features/books/useBookDetail";
-import { useBookRating } from "../features/books/useBookRating";
-import { useOpenLibrary } from "../features/books/useOpenLibrary";
-import { useOptimisticBookToggles } from "../features/books/useOptimisticBookToggles";
-import { useNotes } from "../features/notes/useNotes";
+import { useBookDetail } from "../../hooks/useBookDetail";
+import { useBookRating } from "../../hooks/useBookRating";
+import { useNotes } from "../../hooks/useNotes";
+import { useOpenLibrary } from "../../hooks/useOpenLibrary";
+import { useOptimisticBookToggles } from "../../hooks/useOptimisticBookToggles";
+import { useI18n } from "../i18n/i18n";
 import { coverUploadService } from "../services/coverUploadService";
 import { resolveCoverUrl } from "../services/imageResolver";
 import { useAppTheme } from "../theme/ThemeContext";
-import { useI18n } from "../theme/i18n";
 
 export default function BookDetailScreen() {
   const router = useRouter();
@@ -38,7 +44,6 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const bookId = Array.isArray(id) ? id[0] : id;
 
-  // Hooks métier
   const { book, isLoading, isError, error, refetch, deleteBook } =
     useBookDetail(bookId);
   const {
@@ -73,11 +78,11 @@ export default function BookDetailScreen() {
   }, []);
 
   const startPendingDelete = () => {
-    setCountdown(5);
+    setCountdown(DELETE_DELAY_SECONDS);
 
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
-    }, 1000);
+    }, SECOND_MS);
 
     timerRef.current = setTimeout(async () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -92,7 +97,7 @@ export default function BookDetailScreen() {
         }
         setCountdown(null);
       }
-    }, 5000);
+    }, DELETE_DELAY_MS);
   };
 
   const cancelPendingDelete = () => {
@@ -160,8 +165,8 @@ export default function BookDetailScreen() {
       setErreurNote("La note ne peut pas être vide.");
       return;
     }
-    if (trimmed.length > 1000) {
-      setErreurNote("1000 caractères maximum.");
+    if (trimmed.length > NOTE_MAX_LENGTH) {
+      setErreurNote(`${NOTE_MAX_LENGTH} caractères maximum.`);
       return;
     }
 
@@ -503,7 +508,7 @@ export default function BookDetailScreen() {
             ]}
           >
             <Text style={[styles.charCounter, { color: colors.textMuted }]}>
-              {contenuNote.length}/1000
+              {contenuNote.length}/{NOTE_MAX_LENGTH}
             </Text>
             <Pressable
               style={[

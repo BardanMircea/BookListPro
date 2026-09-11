@@ -1,3 +1,4 @@
+import { STORAGE_KEYS, NOTE_MAX_LENGTH, DEFAULT_LANGUAGE, LOCALES } from "@/constants/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -9,7 +10,7 @@ export const translations = {
     searchPlaceholder: "Rechercher par titre ou auteur...",
     favoritesOnly: "❤️ Coups de cœur",
     readStatusAll: "Tous",
-    readStatusRead: "Lus",
+    readStatusRead: "Lu",
     readStatusToRead: "À lire",
     sortYear: "Année",
     sortRating: "Note",
@@ -24,7 +25,7 @@ export const translations = {
     notesTitle: (count: number) => `Notes de lecture (${count})`,
     publishNote: "Publier la note",
     noNotes: "Aucune note de lecture pour cet ouvrage.",
-    notePlaceholder: "Ajouter une note d’équipe (1000 car. max)...",
+    notePlaceholder: `Ajouter une note d’équipe (${NOTE_MAX_LENGTH} car. max)...`,
     internalRating: "Note interne :",
     openLibraryTitle: "Enrichissement bibliographique (OpenLibrary)",
     openLibraryFound: (editions: number, year?: number) =>
@@ -55,7 +56,7 @@ export const translations = {
     notesTitle: (count: number) => `Reading notes (${count})`,
     publishNote: "Post note",
     noNotes: "No reading notes yet for this book.",
-    notePlaceholder: "Add a staff note (1000 chars max)...",
+    notePlaceholder: `Add a staff note (${NOTE_MAX_LENGTH} chars max)...`,
     internalRating: "Internal rating:",
     openLibraryTitle: "Bibliographic data (OpenLibrary)",
     openLibraryFound: (editions: number, year?: number) =>
@@ -69,7 +70,7 @@ export const translations = {
 
 type I18nContextType = {
   language: Language;
-  t: (typeof translations)["fr"];
+  t: (typeof translations)[Language];
   setLanguage: (lang: Language) => Promise<void>;
   formatDate: (isoString: string) => string;
   formatNumber: (value: number) => string;
@@ -80,21 +81,21 @@ const I18nContext = createContext<I18nContextType | null>(null);
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [language, setLangState] = useState<Language>("fr");
+  const [language, setLangState] = useState<Language>(DEFAULT_LANGUAGE);
 
   useEffect(() => {
-    AsyncStorage.getItem("app_language").then((saved) => {
+    AsyncStorage.getItem(STORAGE_KEYS.language).then((saved) => {
       if (saved === "fr" || saved === "en") setLangState(saved);
     });
   }, []);
 
   const setLanguage = async (newLang: Language) => {
     setLangState(newLang);
-    await AsyncStorage.setItem("app_language", newLang);
+    await AsyncStorage.setItem(STORAGE_KEYS.language, newLang);
   };
 
   const formatDate = (isoString: string) => {
-    return new Intl.DateTimeFormat(language === "fr" ? "fr-FR" : "en-US", {
+    return new Intl.DateTimeFormat(LOCALES[language], {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -104,7 +105,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US").format(
+    return new Intl.NumberFormat(LOCALES[language]).format(
       value,
     );
   };

@@ -1,3 +1,4 @@
+import { BOOK_MIN_YEAR, BOOK_MAX_YEAR, RATING_MIN, RATING_MAX } from "@/constants/constants";
 import { z } from "zod";
 
 export const LivreSchema = z.object({
@@ -5,10 +6,10 @@ export const LivreSchema = z.object({
   titre: z.string().min(1, "Le titre est obligatoire"),
   auteur: z.string().min(1, "L'auteur est obligatoire"),
   editeur: z.string().min(1, "L'éditeur est obligatoire"),
-  annee: z.number().int().min(1450).max(2027),
+  annee: z.number().int().min(BOOK_MIN_YEAR).max(BOOK_MAX_YEAR),
   lu: z.boolean(),
   favori: z.boolean(),
-  note: z.number().min(0).max(5).nullable(),
+  note: z.number().min(RATING_MIN).max(RATING_MAX).nullable(),
   couverture: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -36,8 +37,8 @@ export const LivreFormSchema = z.object({
   annee: z
     .number()
     .int()
-    .min(1450, "Année minimale : 1450")
-    .max(2027, "Année invalide"),
+    .min(BOOK_MIN_YEAR, `Année minimale : ${BOOK_MIN_YEAR}`)
+    .max(BOOK_MAX_YEAR, "Année invalide"),
   lu: z.boolean().default(false),
 });
 

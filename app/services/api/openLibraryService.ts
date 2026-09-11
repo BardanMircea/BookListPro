@@ -1,3 +1,4 @@
+import { OPEN_LIBRARY } from "@/constants/constants";
 import { z } from "zod";
 
 export const OpenLibraryDocSchema = z.object({
@@ -33,12 +34,12 @@ export async function fetchOpenLibraryData(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3500);
+  const timeoutId = setTimeout(() => controller.abort(), OPEN_LIBRARY.timeoutMs);
 
   try {
     const encodedTitle = encodeURIComponent(titre.trim());
     const response = await fetch(
-      `https://openlibrary.org/search.json?title=${encodedTitle}&limit=1`,
+      `${OPEN_LIBRARY.searchUrl}?title=${encodedTitle}&limit=${OPEN_LIBRARY.searchLimit}`,
       {
         signal: signal ?? controller.signal,
       },
@@ -63,7 +64,7 @@ export async function fetchOpenLibraryData(
       nombreEditions: doc.edition_count ?? 0,
       premiereAnneePublication: doc.first_publish_year,
       couvertureSecoursUrl: doc.cover_i
-        ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+        ? `${OPEN_LIBRARY.coversUrl}/${doc.cover_i}-M.jpg`
         : undefined,
     };
   } catch {

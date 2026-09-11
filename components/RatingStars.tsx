@@ -1,8 +1,12 @@
+import {
+  RATING_STARS,
+  RATING_MAX,
+  theme,
+} from "@/constants/constants";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAppTheme } from "@/app/theme/ThemeContext";
-import { theme } from "@/constants/theme";
 
 type RatingStarsProps = {
   note: number | null;
@@ -16,12 +20,11 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
   readOnly = false,
 }) => {
   const { colors } = useAppTheme();
-  const etoiles = [1, 2, 3, 4, 5];
   const valeurActuelle = note ?? 0;
 
   return (
     <View style={styles.container}>
-      {etoiles.map((starIndex) => {
+      {RATING_STARS.map((starIndex) => {
         const estRemplie = starIndex <= valeurActuelle;
 
         return (
@@ -39,7 +42,7 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
             }}
             disabled={readOnly}
             accessibilityRole="button"
-            accessibilityLabel={`Donner la note de ${starIndex} sur 5`}
+            accessibilityLabel={`Donner la note de ${starIndex} sur ${RATING_MAX}`}
             accessibilityState={{ selected: estRemplie }}
           >
             <Text

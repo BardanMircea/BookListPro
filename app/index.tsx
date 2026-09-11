@@ -1,4 +1,7 @@
-import { theme } from "@/constants/theme";
+import {
+  FIRST_PAGE,
+  theme,
+} from "@/constants/constants";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import {
@@ -10,14 +13,14 @@ import {
   View,
 } from "react-native";
 import { BookCard } from "../components/BookCard";
+import { BookFiltersBar } from "../components/BookFiltersBar";
 import { BookSkeleton } from "../components/BookSkeleton";
 import { EmptyView } from "../components/EmptyView";
 import { ErrorView } from "../components/ErrorView";
-import { BookFiltersBar } from "./features/books/BookFiltersBar";
-import { useBooks } from "./features/books/useBooks";
-import { useOptimisticBookToggles } from "./features/books/useOptimisticBookToggles";
+import { useBooks } from "../hooks/useBooks";
+import { useOptimisticBookToggles } from "../hooks/useOptimisticBookToggles";
+import { useI18n } from "./i18n/i18n";
 import { useAppTheme } from "./theme/ThemeContext";
-import { useI18n } from "./theme/i18n";
 
 export default function BooksListScreen() {
   const router = useRouter();
@@ -79,7 +82,7 @@ export default function BooksListScreen() {
               q: undefined,
               status: undefined,
               favori: undefined,
-              page: 1,
+              page: FIRST_PAGE,
             })
           }
         />

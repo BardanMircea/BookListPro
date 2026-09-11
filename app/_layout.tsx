@@ -1,10 +1,11 @@
+import { QUERY_CONFIG } from "@/constants/constants";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import React, { useState } from "react";
 import { HeaderControls } from "../components/HeaderControls";
 import { AppError } from "./domain/errors";
+import { I18nProvider, useI18n } from "./i18n/i18n";
 import { ThemeProvider, useAppTheme } from "./theme/ThemeContext";
-import { I18nProvider, useI18n } from "./theme/i18n";
 
 function AppNavigationStack() {
   const { colors } = useAppTheme();
@@ -61,8 +62,8 @@ export default function RootLayout() {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 30,
-            gcTime: 1000 * 60 * 5,
+            staleTime: QUERY_CONFIG.staleTime,
+            gcTime: QUERY_CONFIG.gcTime,
             retry: (failureCount, error: unknown) => {
               const appError = error as AppError;
               if (
@@ -72,10 +73,10 @@ export default function RootLayout() {
               ) {
                 return false;
               }
-              return failureCount < 2;
+              return failureCount < QUERY_CONFIG.retryCount;
             },
             retryDelay: (attemptIndex) =>
-              Math.min(1000 * 2 ** attemptIndex, 10000),
+              Math.min(QUERY_CONFIG.retryDelayMs * QUERY_CONFIG.retryBackoff ** attemptIndex, QUERY_CONFIG.maxRetryDelayMs),
           },
         },
       }),

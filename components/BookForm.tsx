@@ -10,11 +10,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { LivreFormData, LivreSchema } from "../../domain/livre";
+import { LivreFormData, LivreSchema } from "../app/domain/livre";
 
-import { theme } from "@/constants/theme";
-import { useAppTheme } from "../../theme/ThemeContext";
-import { useI18n } from "../../theme/i18n";
+import { theme } from "@/constants/constants";
+import { useI18n } from "../app/i18n/i18n";
+import { useAppTheme } from "../app/theme/ThemeContext";
 
 // Schéma de formulaire dérivé (champs éditables)
 const FormSchema = LivreSchema.pick({

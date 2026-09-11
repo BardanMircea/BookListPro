@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AppError } from "../../domain/errors";
-import { Livre, LivreSchema } from "../../domain/livre";
-import { request } from "../../services/api/httpClient";
-import { bookKeys } from "./bookKeys";
+import { AppError } from "../app/domain/errors";
+import { Livre, LivreSchema } from "../app/domain/livre";
+import { bookKeys } from "@/constants/constants";
+import { request } from "../app/services/api/httpClient";
 
 export function useBookRating(livreId: string) {
   const queryClient = useQueryClient();
