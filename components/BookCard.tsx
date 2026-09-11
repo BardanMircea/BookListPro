@@ -1,11 +1,8 @@
-import {
-  RATING_MAX,
-  theme,
-} from "@/constants/constants";
 import { Livre } from "@/app/domain/livre";
 import { useI18n } from "@/app/i18n/i18n";
 import { resolveCoverUrl } from "@/app/services/imageResolver";
 import { useAppTheme } from "@/app/theme/ThemeContext";
+import { RATING_MAX, theme } from "@/constants/constants";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -40,7 +37,6 @@ const BookCardComponent: React.FC<BookCardProps> = ({
       onPress={() => onPress(livre.id)}
       accessibilityLabel={`${livre.titre}, ${livre.auteur}`}
     >
-      {/* Vignette de couverture (exigence Lot 3) */}
       <Image
         source={{ uri: coverUrl }}
         style={styles.thumbnail}
