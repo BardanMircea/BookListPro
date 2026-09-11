@@ -1,6 +1,6 @@
-﻿# Cahier de lecture
+﻿# BookListPro
 
-Application de gestion d’une bibliothèque personnelle développée avec **React Native, Expo et TypeScript**. Cahier de lecture permet d’organiser ses ouvrages, de suivre ses lectures et de conserver ses appréciations et notes dans une interface proposant des thèmes clair et sombre ainsi qu’un choix de langue français/anglais.
+Application de gestion d’une bibliothèque personnelle développée avec **React Native, Expo et TypeScript**. BookListPro permet d’organiser ses ouvrages, de suivre ses lectures et de conserver ses appréciations et notes dans une interface proposant des thèmes clair et sombre ainsi qu’un choix de langue français/anglais.
 
 Le projet contient le client de l’application. Les livres et les notes sont enregistrés par une **API REST distincte**, à démarrer et configurer séparément.
 
@@ -32,7 +32,7 @@ Ouvrir `http://localhost:3000/books?page=1&limit=1` dans le navigateur, en adapt
 npm run web
 ```
 
-Ouvrir l’adresse locale affichée par Expo si le navigateur ne s’ouvre pas automatiquement. Le démarrage est réussi lorsque **Cahier de lecture** affiche les livres ou un état vide, sans erreur réseau. Utiliser le bouton **+** pour créer un premier ouvrage si l’API autorise les écritures.
+Ouvrir l’adresse locale affichée par Expo si le navigateur ne s’ouvre pas automatiquement. Le démarrage est réussi lorsque **BookListPro** affiche les livres ou un état vide, sans erreur réseau. Utiliser le bouton **+** pour créer un premier ouvrage si l’API autorise les écritures.
 
 ### 4. Vérifier les tests
 
@@ -48,7 +48,7 @@ Cette commande fonctionne **sans API** grâce aux réponses réseau simulées. E
 
 ## Sommaire
 
-- [Cahier de lecture](#cahier-de-lecture)
+- [BookListPro](#booklistpro)
   - [Démarrage rapide](#démarrage-rapide)
     - [1. Récupérer et installer le projet](#1-récupérer-et-installer-le-projet)
     - [2. Vérifier la connexion à l’API](#2-vérifier-la-connexion-à-lapi)
