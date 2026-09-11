@@ -1,5 +1,5 @@
 import { Note } from "@/app/domain/note";
-import { useI18n } from "@/app/theme/i18n";
+import { useI18n } from "@/app/i18n/i18n";
 import { useAppTheme } from "@/app/theme/ThemeContext";
 import { theme } from "@/constants/theme";
 import React from "react";

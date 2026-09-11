@@ -9,9 +9,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useI18n } from "../../i18n/i18n";
 import { BookFilters } from "../../services/api/booksService";
 import { useAppTheme } from "../../theme/ThemeContext";
-import { useI18n } from "../../theme/i18n";
 
 type BookFiltersBarProps = {
   onFiltersChange: (filters: Partial<BookFilters>) => void;
@@ -157,7 +157,7 @@ export const BookFiltersBar: React.FC<BookFiltersBarProps> = ({
               },
             ]}
           >
-            {t.sortYear} {sortField === "annee" ? "▼" : ""}
+            {t.sortYear} {sortField === "annee" ? "▲" : ""}
           </Text>
         </Pressable>
 
@@ -180,7 +180,7 @@ export const BookFiltersBar: React.FC<BookFiltersBarProps> = ({
               },
             ]}
           >
-            {t.sortRating} {sortField === "note" ? "▼" : ""}
+            {t.sortRating} {sortField === "note" ? "▲" : ""}
           </Text>
         </Pressable>
       </ScrollView>

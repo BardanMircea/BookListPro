@@ -9,7 +9,7 @@ export const translations = {
     searchPlaceholder: "Rechercher par titre ou auteur...",
     favoritesOnly: "❤️ Coups de cœur",
     readStatusAll: "Tous",
-    readStatusRead: "Lus",
+    readStatusRead: "Lu",
     readStatusToRead: "À lire",
     sortYear: "Année",
     sortRating: "Note",

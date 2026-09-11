@@ -16,8 +16,8 @@ import { ErrorView } from "../components/ErrorView";
 import { BookFiltersBar } from "./features/books/BookFiltersBar";
 import { useBooks } from "./features/books/useBooks";
 import { useOptimisticBookToggles } from "./features/books/useOptimisticBookToggles";
+import { useI18n } from "./i18n/i18n";
 import { useAppTheme } from "./theme/ThemeContext";
-import { useI18n } from "./theme/i18n";
 
 export default function BooksListScreen() {
   const router = useRouter();

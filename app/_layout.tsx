@@ -3,8 +3,8 @@ import { Stack } from "expo-router";
 import React, { useState } from "react";
 import { HeaderControls } from "../components/HeaderControls";
 import { AppError } from "./domain/errors";
+import { I18nProvider, useI18n } from "./i18n/i18n";
 import { ThemeProvider, useAppTheme } from "./theme/ThemeContext";
-import { I18nProvider, useI18n } from "./theme/i18n";
 
 function AppNavigationStack() {
   const { colors } = useAppTheme();

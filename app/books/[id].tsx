@@ -24,10 +24,10 @@ import { useBookRating } from "../features/books/useBookRating";
 import { useOpenLibrary } from "../features/books/useOpenLibrary";
 import { useOptimisticBookToggles } from "../features/books/useOptimisticBookToggles";
 import { useNotes } from "../features/notes/useNotes";
+import { useI18n } from "../i18n/i18n";
 import { coverUploadService } from "../services/coverUploadService";
 import { resolveCoverUrl } from "../services/imageResolver";
 import { useAppTheme } from "../theme/ThemeContext";
-import { useI18n } from "../theme/i18n";
 
 export default function BookDetailScreen() {
   const router = useRouter();

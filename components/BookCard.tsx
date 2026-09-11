@@ -1,6 +1,6 @@
 import { Livre } from "@/app/domain/livre";
+import { useI18n } from "@/app/i18n/i18n";
 import { resolveCoverUrl } from "@/app/services/imageResolver";
-import { useI18n } from "@/app/theme/i18n";
 import { useAppTheme } from "@/app/theme/ThemeContext";
 import { theme } from "@/constants/theme";
 import React from "react";

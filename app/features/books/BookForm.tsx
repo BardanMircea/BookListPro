@@ -13,8 +13,8 @@ import {
 import { LivreFormData, LivreSchema } from "../../domain/livre";
 
 import { theme } from "@/constants/theme";
+import { useI18n } from "../../i18n/i18n";
 import { useAppTheme } from "../../theme/ThemeContext";
-import { useI18n } from "../../theme/i18n";
 
 // Schéma de formulaire dérivé (champs éditables)
 const FormSchema = LivreSchema.pick({
