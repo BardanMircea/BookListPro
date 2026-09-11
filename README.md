@@ -313,7 +313,7 @@ npx tsc --noEmit
 npm run lint
 ```
 
-Ces commandes vérifient les types TypeScript et les règles ESLint. Le détail des scénarios et leurs limites figure dans [tests/README.md](tests/README.md).
+Ces commandes vérifient les types TypeScript et les règles ESLint.
 
 ## Limites actuelles
 
