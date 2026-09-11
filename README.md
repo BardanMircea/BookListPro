@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+﻿## Ajouts après 17 h 00 — Tests automatisés
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Les tests sont regroupés dans [tests/](tests/README.md), en dehors des routes Expo Router. Ils utilisent **Jest 29**, **jest-expo 54** et **React Native Testing Library 13**. La configuration se trouve dans [jest.config.js](jest.config.js).
 
-## Get started
+### Commandes
 
-1. Install dependencies
+| Commande                | Utilisation                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `npm test`              | Exécuter toute la suite une fois, générer la couverture et vérifier les seuils |
+| `npm run test:watch`    | Relancer les tests pendant le développement, sans couverture                   |
+| `npm run test:coverage` | Exécuter explicitement la suite avec le rapport de couverture                  |
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Pour exécuter uniquement les tests du service de livres :
 
 ```bash
-npm run reset-project
+npm test -- --runTestsByPath tests/services/booksService.test.ts --coverage=false
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Sous PowerShell, si `npm.ps1` est bloqué par la politique d’exécution, utiliser `npm.cmd` à la place de `npm`, par exemple `npm.cmd test`.
 
-## Learn more
+### Organisation
 
-To learn more about developing your project with Expo, look at the following resources:
+```text
+tests/
+├── components/   # EmptyView, ErrorView et RatingStars
+├── domain/       # Règles de validation Zod
+├── helpers/      # Livres, notes et réponses HTTP de test
+├── hooks/        # useBooks avec API simulée
+├── services/     # Client HTTP et services applicatifs
+├── setup.ts      # Simulation réseau et nettoyage entre les tests
+└── README.md     # Détails et limites des scénarios
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Les fichiers de tests portent l’extension `.test.ts` ou `.test.tsx`.
 
-## Join the community
+### Tests ajoutés et comportements vérifiés
 
-Join our community of developers creating universal apps.
+| Partie               | Scénarios                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `httpClient`         | Validation des réponses, en-têtes, réponse 204, erreurs 401/403/409/422/503, réponse non JSON, panne réseau et timeout                                                    |
+| `booksService`       | Lecture, création, modification et suppression ; pagination ; encodage des filtres ; conservation de `favori=false` ; transmission de `If-Match` et remontée des conflits |
+| `notesService`       | Chargement, création, suppression et rejet d’une note invalide reçue du serveur                                                                                           |
+| `openLibraryService` | Recherche encodée, transformation des métadonnées, champs optionnels et repli en cas d’échec ou de résultat vide                                                          |
+| Couvertures          | Résolution des URL, image de repli, annulation de sélection, compression JPEG, envoi du base64 et réinitialisation                                                        |
+| `EmptyView`          | Messages par défaut/personnalisés, déclenchement et affichage conditionnel de l’action                                                                                    |
+| `ErrorView`          | Message adapté au type d’erreur et bouton de relance                                                                                                                      |
+| `RatingStars`        | Attribution d’une note, remise à zéro et lecture seule                                                                                                                    |
+| `useBooks`           | Chargement, résultat vide, erreur et relance, changement de filtres et limites de pagination                                                                              |
+| Schémas du domaine   | Champs obligatoires, années limites, notes de 0 à 5, pagination et longueur du contenu d’une note                                                                         |
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Les tests des services et du hook simulent la frontière réseau avec **un mock de `fetch`** : les services, le client HTTP et les validations Zod sont réellement exécutés. Aucun serveur n’est nécessaire pour les lancer. Les modules natifs de sélection/compression d’images et AsyncStorage sont également simulés.
+
+Chaque test du hook utilise un cache React Query indépendant, avec les nouvelles tentatives automatiques désactivées.
