@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppError } from "../app/domain/errors";
 import { Livre } from "../app/domain/livre";
-import { bookKeys } from "../app/queryKeys/bookKeys";
+import { bookKeys } from "@/constants/constants";
 import { booksService } from "../app/services/api/booksService";
 
 export function useBookDetail(id: string) {

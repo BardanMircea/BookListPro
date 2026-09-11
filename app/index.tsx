@@ -1,4 +1,7 @@
-import { theme } from "@/app/theme/theme";
+import {
+  FIRST_PAGE,
+  theme,
+} from "@/constants/constants";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import {
@@ -79,7 +82,7 @@ export default function BooksListScreen() {
               q: undefined,
               status: undefined,
               favori: undefined,
-              page: 1,
+              page: FIRST_PAGE,
             })
           }
         />

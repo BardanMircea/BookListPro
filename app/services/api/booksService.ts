@@ -1,3 +1,4 @@
+import { FIRST_PAGE, DEFAULT_PAGE_SIZE } from "@/constants/constants";
 import { z } from "zod";
 import {
   Livre,
@@ -19,7 +20,7 @@ export type BookFilters = {
 };
 
 export const booksService = {
-  getAll: (page: number = 1, limit: number = 20): Promise<PaginatedBooks> => {
+  getAll: (page: number = FIRST_PAGE, limit: number = DEFAULT_PAGE_SIZE): Promise<PaginatedBooks> => {
     return request(`/books?page=${page}&limit=${limit}`, PaginatedBooksSchema);
   },
 

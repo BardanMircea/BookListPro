@@ -1,9 +1,11 @@
+import {
+  bookKeys,
+  theme,
+} from "@/constants/constants";
 import { AppError } from "@/app/domain/errors";
 import { Livre, LivreFormData } from "@/app/domain/livre";
 import { useI18n } from "@/app/i18n/i18n";
-import { bookKeys } from "@/app/queryKeys/bookKeys";
 import { booksService } from "@/app/services/api/booksService";
-import { theme } from "@/app/theme/theme";
 import { useAppTheme } from "@/app/theme/ThemeContext";
 import { BookForm } from "@/components/BookForm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

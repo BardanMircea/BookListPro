@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { LivreFormData, LivreSchema } from "../app/domain/livre";
 
-import { theme } from "@/app/theme/theme";
+import { theme } from "@/constants/constants";
 import { useI18n } from "../app/i18n/i18n";
 import { useAppTheme } from "../app/theme/ThemeContext";
 

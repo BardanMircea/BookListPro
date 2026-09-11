@@ -1,3 +1,4 @@
+import { DEFAULT_BOOK_FILTERS, FIRST_PAGE, bookKeys } from "@/constants/constants";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppError } from "../app/domain/errors";
@@ -5,16 +6,11 @@ import { PaginatedBooks } from "../app/domain/livre";
 import { BookFilters, booksService } from "../app/services/api/booksService";
 
 export function useBooks() {
-  const [filters, setFilters] = useState<BookFilters>({
-    page: 1,
-    limit: 20,
-    sort: "titre",
-    order: "asc",
-  });
+  const [filters, setFilters] = useState<BookFilters>({ ...DEFAULT_BOOK_FILTERS });
 
   const query = useQuery<PaginatedBooks, AppError>({
     // La clé de cache dépend directement de l'ensemble des filtres
-    queryKey: ["books", "list", filters],
+    queryKey: bookKeys.list(filters),
     // signal permet à fetch d'annuler immédiatement la requête HTTP en vol si filters change
     queryFn: ({ signal }) => booksService.getAllFiltered(filters, signal),
   });
@@ -24,26 +20,26 @@ export function useBooks() {
   };
 
   const nextPage = () => {
-    if (query.data && (filters.page ?? 1) < query.data.totalPages) {
-      setFilters((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }));
+    if (query.data && (filters.page ?? FIRST_PAGE) < query.data.totalPages) {
+      setFilters((prev) => ({ ...prev, page: (prev.page ?? FIRST_PAGE) + 1 }));
     }
   };
 
   const previousPage = () => {
     setFilters((prev) => ({
       ...prev,
-      page: Math.max((prev.page ?? 1) - 1, 1),
+      page: Math.max((prev.page ?? FIRST_PAGE) - 1, FIRST_PAGE),
     }));
   };
 
   return {
     books: query.data?.items ?? [],
     pagination: {
-      currentPage: query.data?.page ?? filters.page ?? 1,
-      totalPages: query.data?.totalPages ?? 1,
+      currentPage: query.data?.page ?? filters.page ?? FIRST_PAGE,
+      totalPages: query.data?.totalPages ?? FIRST_PAGE,
       totalItems: query.data?.total ?? 0,
-      hasNext: query.data ? (filters.page ?? 1) < query.data.totalPages : false,
-      hasPrevious: (filters.page ?? 1) > 1,
+      hasNext: query.data ? (filters.page ?? FIRST_PAGE) < query.data.totalPages : false,
+      hasPrevious: (filters.page ?? FIRST_PAGE) > FIRST_PAGE,
       nextPage,
       previousPage,
     },

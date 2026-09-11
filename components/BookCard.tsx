@@ -1,8 +1,11 @@
+import {
+  RATING_MAX,
+  theme,
+} from "@/constants/constants";
 import { Livre } from "@/app/domain/livre";
 import { useI18n } from "@/app/i18n/i18n";
 import { resolveCoverUrl } from "@/app/services/imageResolver";
 import { useAppTheme } from "@/app/theme/ThemeContext";
-import { theme } from "@/app/theme/theme";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -118,7 +121,7 @@ const BookCardComponent: React.FC<BookCardProps> = ({
           </Text>
           {livre.note !== null && (
             <Text style={[styles.note, { color: colors.warning }]}>
-              ★ {livre.note.toFixed(1)}/5
+              ★ {livre.note.toFixed(1)}/{RATING_MAX}
             </Text>
           )}
         </View>

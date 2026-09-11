@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppError } from "../app/domain/errors";
 import { Livre, LivreSchema } from "../app/domain/livre";
-import { bookKeys } from "../app/queryKeys/bookKeys";
+import { bookKeys } from "@/constants/constants";
 import { request } from "../app/services/api/httpClient";
 
 export function useBookRating(livreId: string) {

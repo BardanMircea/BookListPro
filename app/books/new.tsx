@@ -5,7 +5,7 @@ import { Alert, Platform, ScrollView, StyleSheet } from "react-native";
 import { BookForm } from "../../components/BookForm";
 import { AppError } from "../domain/errors";
 import { LivreFormData } from "../domain/livre";
-import { bookKeys } from "../queryKeys/bookKeys";
+import { bookKeys } from "@/constants/constants";
 import { booksService } from "../services/api/booksService";
 
 export default function NewBookScreen() {

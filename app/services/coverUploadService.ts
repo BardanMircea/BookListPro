@@ -1,3 +1,4 @@
+import { COVER_UPLOAD } from "@/constants/constants";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { Livre, LivreSchema } from "../domain/livre";
@@ -9,8 +10,8 @@ export const coverUploadService = {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [2, 3],
-      quality: 1,
+      aspect: [...COVER_UPLOAD.aspect],
+      quality: COVER_UPLOAD.pickerQuality,
     });
 
     if (result.canceled || !result.assets || result.assets.length === 0) {
@@ -22,8 +23,8 @@ export const coverUploadService = {
     // 2. Redimensionnement et compression pour ne pas saturer l'API
     const manipulated = await ImageManipulator.manipulateAsync(
       asset.uri,
-      [{ resize: { width: 600 } }], // Largeur max de 600 px
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      [{ resize: { width: COVER_UPLOAD.width } }], // Largeur max de 600 px
+      { compress: COVER_UPLOAD.compression, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
 
     if (!manipulated.base64) {

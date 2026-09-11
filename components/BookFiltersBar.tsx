@@ -1,4 +1,8 @@
-import { theme } from "@/app/theme/theme";
+import {
+  FIRST_PAGE,
+  DEFAULT_BOOK_FILTERS,
+  theme,
+} from "@/constants/constants";
 import { useDebounce } from "@/hooks/useDebounce";
 import React, { useEffect, useState } from "react";
 import {
@@ -24,13 +28,13 @@ export const BookFiltersBar: React.FC<BookFiltersBarProps> = ({
   const { t } = useI18n();
 
   const [localQuery, setLocalQuery] = useState("");
-  const debouncedQuery = useDebounce(localQuery, 300);
+  const debouncedQuery = useDebounce(localQuery);
 
   const [status, setStatus] = useState<"all" | "lu" | "nonlu">("all");
   const [favoriOnly, setFavoriOnly] = useState(false);
   const [sortField, setSortField] = useState<
     "titre" | "auteur" | "annee" | "note"
-  >("titre");
+  >(DEFAULT_BOOK_FILTERS.sort);
 
   useEffect(() => {
     onFiltersChange({
@@ -38,7 +42,7 @@ export const BookFiltersBar: React.FC<BookFiltersBarProps> = ({
       status: status === "all" ? undefined : status,
       favori: favoriOnly ? true : undefined,
       sort: sortField,
-      page: 1,
+      page: FIRST_PAGE,
     });
   }, [debouncedQuery, status, favoriOnly, sortField]);
 

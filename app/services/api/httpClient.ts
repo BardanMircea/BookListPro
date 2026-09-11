@@ -1,8 +1,7 @@
+import { API_BASE_URL, DEFAULT_TIMEOUT_MS, HTTP_STATUS } from "@/constants/constants";
 import { z } from "zod";
 import { AppError } from "../../domain/errors";
 
-const BASE_URL = "http://localhost:3000";
-const DEFAULT_TIMEOUT_MS = 8000;
 
 interface RequestOptions extends RequestInit {
   timeoutMs?: number;
@@ -34,7 +33,7 @@ export async function request<T>(
   }
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...customConfig,
       headers: requestHeaders,
       signal: controller.signal,
@@ -43,7 +42,7 @@ export async function request<T>(
     clearTimeout(idTimeout);
 
     // Suppression réussie (204 No Content)
-    if (response.status === 204) {
+    if (response.status === HTTP_STATUS.NO_CONTENT) {
       return schema.parse(null);
     }
 
@@ -51,7 +50,7 @@ export async function request<T>(
 
     if (!response.ok) {
       // Traduction ciblée des codes HTTP en erreurs applicatives
-      if (response.status === 422) {
+      if (response.status === HTTP_STATUS.VALIDATION) {
         throw {
           type: "VALIDATION",
           message: payload.message ?? "Données invalides",
@@ -59,7 +58,7 @@ export async function request<T>(
         } satisfies AppError;
       }
 
-      if (response.status === 409) {
+      if (response.status === HTTP_STATUS.CONFLICT) {
         throw {
           type: "CONFLIT",
           message: payload.message ?? "Conflit de version détecté",
@@ -67,7 +66,7 @@ export async function request<T>(
         } satisfies AppError;
       }
 
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === HTTP_STATUS.UNAUTHORIZED || response.status === HTTP_STATUS.FORBIDDEN) {
         throw {
           type: "AUTH",
           message: payload.message ?? "Action non autorisée",

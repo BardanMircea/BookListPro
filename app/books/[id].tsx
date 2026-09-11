@@ -1,4 +1,11 @@
-import { theme } from "@/app/theme/theme";
+import {
+  DELETE_DELAY_SECONDS,
+  DELETE_DELAY_MS,
+  SECOND_MS,
+  NOTE_MAX_LENGTH,
+  theme,
+  bookKeys,
+} from "@/constants/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -24,7 +31,6 @@ import { useNotes } from "../../hooks/useNotes";
 import { useOpenLibrary } from "../../hooks/useOpenLibrary";
 import { useOptimisticBookToggles } from "../../hooks/useOptimisticBookToggles";
 import { useI18n } from "../i18n/i18n";
-import { bookKeys } from "../queryKeys/bookKeys";
 import { coverUploadService } from "../services/coverUploadService";
 import { resolveCoverUrl } from "../services/imageResolver";
 import { useAppTheme } from "../theme/ThemeContext";
@@ -72,11 +78,11 @@ export default function BookDetailScreen() {
   }, []);
 
   const startPendingDelete = () => {
-    setCountdown(5);
+    setCountdown(DELETE_DELAY_SECONDS);
 
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
-    }, 1000);
+    }, SECOND_MS);
 
     timerRef.current = setTimeout(async () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -91,7 +97,7 @@ export default function BookDetailScreen() {
         }
         setCountdown(null);
       }
-    }, 5000);
+    }, DELETE_DELAY_MS);
   };
 
   const cancelPendingDelete = () => {
@@ -159,8 +165,8 @@ export default function BookDetailScreen() {
       setErreurNote("La note ne peut pas être vide.");
       return;
     }
-    if (trimmed.length > 1000) {
-      setErreurNote("1000 caractères maximum.");
+    if (trimmed.length > NOTE_MAX_LENGTH) {
+      setErreurNote(`${NOTE_MAX_LENGTH} caractères maximum.`);
       return;
     }
 
@@ -502,7 +508,7 @@ export default function BookDetailScreen() {
             ]}
           >
             <Text style={[styles.charCounter, { color: colors.textMuted }]}>
-              {contenuNote.length}/1000
+              {contenuNote.length}/{NOTE_MAX_LENGTH}
             </Text>
             <Pressable
               style={[
