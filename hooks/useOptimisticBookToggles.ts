@@ -1,8 +1,13 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { type QueryKey, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppError } from "../app/domain/errors";
 import { Livre, PaginatedBooks } from "../app/domain/livre";
 import { bookKeys } from "@/constants/constants";
 import { booksService } from "../app/services/api/booksService";
+
+type BookToggleSnapshot = {
+  previousLists: [QueryKey, PaginatedBooks | undefined][];
+  previousDetail: Livre | undefined;
+};
 
 export function useOptimisticBookToggles() {
   const queryClient = useQueryClient();
@@ -12,14 +17,14 @@ export function useOptimisticBookToggles() {
     Livre,
     AppError,
     { id: string; lu: boolean },
-    { previousLists: any; previousDetail: any }
+    BookToggleSnapshot
   >({
     mutationFn: ({ id, lu }) => booksService.toggleLu(id, lu),
     onMutate: async ({ id, lu }) => {
       // Bloque les requêtes en cours pour éviter d'écraser notre mise à jour optimiste
       await queryClient.cancelQueries({ queryKey: bookKeys.all });
 
-      const previousLists = queryClient.getQueriesData({
+      const previousLists = queryClient.getQueriesData<PaginatedBooks>({
         queryKey: bookKeys.lists(),
       });
       const previousDetail = queryClient.getQueryData<Livre>(
@@ -54,8 +59,8 @@ export function useOptimisticBookToggles() {
     onError: (_err, { id }, context) => {
       // ROLLBACK : restauration de l'état d'origine si l'appel échoue (503 chaos)
       if (context?.previousLists) {
-        context.previousLists.forEach(([key, val]: any) =>
-          queryClient.setQueryData(key, val),
+        context.previousLists.forEach(([key, val]) =>
+          queryClient.setQueryData<PaginatedBooks>(key, val),
         );
       }
       if (context?.previousDetail) {
@@ -73,13 +78,13 @@ export function useOptimisticBookToggles() {
     Livre,
     AppError,
     { id: string; favori: boolean },
-    { previousLists: any; previousDetail: any }
+    BookToggleSnapshot
   >({
     mutationFn: ({ id, favori }) => booksService.toggleFavori(id, favori),
     onMutate: async ({ id, favori }) => {
       await queryClient.cancelQueries({ queryKey: bookKeys.all });
 
-      const previousLists = queryClient.getQueriesData({
+      const previousLists = queryClient.getQueriesData<PaginatedBooks>({
         queryKey: bookKeys.lists(),
       });
       const previousDetail = queryClient.getQueryData<Livre>(
@@ -111,8 +116,8 @@ export function useOptimisticBookToggles() {
     onError: (_err, { id }, context) => {
       // ROLLBACK
       if (context?.previousLists) {
-        context.previousLists.forEach(([key, val]: any) =>
-          queryClient.setQueryData(key, val),
+        context.previousLists.forEach(([key, val]) =>
+          queryClient.setQueryData<PaginatedBooks>(key, val),
         );
       }
       if (context?.previousDetail) {
