@@ -2,7 +2,7 @@ import { Livre } from "@/app/domain/livre";
 import { useI18n } from "@/app/i18n/i18n";
 import { resolveCoverUrl } from "@/app/services/imageResolver";
 import { useAppTheme } from "@/app/theme/ThemeContext";
-import { theme } from "@/constants/theme";
+import { theme } from "@/app/theme/theme";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 

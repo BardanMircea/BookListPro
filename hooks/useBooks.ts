@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { AppError } from "../../domain/errors";
-import { PaginatedBooks } from "../../domain/livre";
-import { BookFilters, booksService } from "../../services/api/booksService";
+import { AppError } from "../app/domain/errors";
+import { PaginatedBooks } from "../app/domain/livre";
+import { BookFilters, booksService } from "../app/services/api/booksService";
 
 export function useBooks() {
   const [filters, setFilters] = useState<BookFilters>({

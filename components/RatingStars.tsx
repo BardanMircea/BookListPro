@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAppTheme } from "@/app/theme/ThemeContext";
-import { theme } from "@/constants/theme";
+import { theme } from "@/app/theme/theme";
 
 type RatingStarsProps = {
   note: number | null;

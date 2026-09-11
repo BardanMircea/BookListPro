@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   fetchOpenLibraryData,
   OpenLibraryData,
-} from "../../services/api/openLibraryService";
+} from "../app/services/api/openLibraryService";
 
 export function useOpenLibrary(titre: string | undefined) {
   return useQuery<OpenLibraryData>({

@@ -1,4 +1,4 @@
-import { theme } from "@/constants/theme";
+import { theme } from "@/app/theme/theme";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -18,13 +18,13 @@ import { BookSkeleton } from "../../components/BookSkeleton";
 import { ErrorView } from "../../components/ErrorView";
 import { NoteItem } from "../../components/NoteItem";
 import { RatingStars } from "../../components/RatingStars";
-import { bookKeys } from "../features/books/bookKeys";
-import { useBookDetail } from "../features/books/useBookDetail";
-import { useBookRating } from "../features/books/useBookRating";
-import { useOpenLibrary } from "../features/books/useOpenLibrary";
-import { useOptimisticBookToggles } from "../features/books/useOptimisticBookToggles";
-import { useNotes } from "../features/notes/useNotes";
+import { useBookDetail } from "../../hooks/useBookDetail";
+import { useBookRating } from "../../hooks/useBookRating";
+import { useNotes } from "../../hooks/useNotes";
+import { useOpenLibrary } from "../../hooks/useOpenLibrary";
+import { useOptimisticBookToggles } from "../../hooks/useOptimisticBookToggles";
 import { useI18n } from "../i18n/i18n";
+import { bookKeys } from "../queryKeys/bookKeys";
 import { coverUploadService } from "../services/coverUploadService";
 import { resolveCoverUrl } from "../services/imageResolver";
 import { useAppTheme } from "../theme/ThemeContext";
@@ -38,7 +38,6 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const bookId = Array.isArray(id) ? id[0] : id;
 
-  // Hooks métier
   const { book, isLoading, isError, error, refetch, deleteBook } =
     useBookDetail(bookId);
   const {

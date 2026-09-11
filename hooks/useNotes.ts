@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppError } from "../../domain/errors";
-import { Note, NoteCreateData } from "../../domain/note";
-import { notesService } from "../../services/api/noteService";
-import { noteKeys } from "./noteKeys";
+import { AppError } from "../app/domain/errors";
+import { Note, NoteCreateData } from "../app/domain/note";
+import { noteKeys } from "../app/queryKeys/noteKeys";
+import { notesService } from "../app/services/api/noteService";
 
 export function useNotes(livreId: string) {
   const queryClient = useQueryClient();

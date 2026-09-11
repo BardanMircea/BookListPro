@@ -1,4 +1,4 @@
-import { theme } from "@/constants/theme";
+import { theme } from "@/app/theme/theme";
 import { useDebounce } from "@/hooks/useDebounce";
 import React, { useEffect, useState } from "react";
 import {
@@ -9,9 +9,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useI18n } from "../../i18n/i18n";
-import { BookFilters } from "../../services/api/booksService";
-import { useAppTheme } from "../../theme/ThemeContext";
+import { useI18n } from "../app/i18n/i18n";
+import { BookFilters } from "../app/services/api/booksService";
+import { useAppTheme } from "../app/theme/ThemeContext";
 
 type BookFiltersBarProps = {
   onFiltersChange: (filters: Partial<BookFilters>) => void;
