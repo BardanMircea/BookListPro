@@ -1,6 +1,7 @@
 import { API_BASE_URL, DEFAULT_TIMEOUT_MS, HTTP_STATUS } from "@/constants/constants";
 import { z } from "zod";
 import { AppError } from "../../domain/errors";
+import { createRequestCancellation } from "./requestCancellation";
 
 
 interface RequestOptions extends RequestInit {
@@ -17,11 +18,11 @@ export async function request<T>(
     timeoutMs = DEFAULT_TIMEOUT_MS,
     version,
     headers,
+    signal,
     ...customConfig
   } = options;
 
-  const controller = new AbortController();
-  const idTimeout = setTimeout(() => controller.abort(), timeoutMs);
+  const cancellation = createRequestCancellation(timeoutMs, signal);
 
   const requestHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -33,20 +34,26 @@ export async function request<T>(
   }
 
   try {
+    cancellation.throwIfAborted();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...customConfig,
       headers: requestHeaders,
-      signal: controller.signal,
+      signal: cancellation.signal,
     });
 
-    clearTimeout(idTimeout);
+    cancellation.throwIfAborted();
 
     // Suppression réussie (204 No Content)
     if (response.status === HTTP_STATUS.NO_CONTENT) {
       return schema.parse(null);
     }
 
-    const payload = await response.json().catch(() => ({}));
+    const payload = await response.json().catch((error: unknown) => {
+      cancellation.throwIfAborted();
+      if (error instanceof Error && error.name === "AbortError") throw error;
+      return {};
+    });
+    cancellation.throwIfAborted();
 
     if (!response.ok) {
       // Traduction ciblée des codes HTTP en erreurs applicatives
@@ -83,7 +90,10 @@ export async function request<T>(
     // Validation Zod au runtime : si le contrat backend est rompu, ça lève une exception
     return schema.parse(payload);
   } catch (error: unknown) {
-    clearTimeout(idTimeout);
+    // Une annulation volontaire n'est pas une panne ni un timeout.
+    if (cancellation.signal.aborted && !cancellation.timedOut) {
+      cancellation.throwIfAborted();
+    }
 
     // Si l'erreur est déjà un AppError typé, on la propage
     if (typeof error === "object" && error !== null && "type" in error) {
@@ -91,12 +101,14 @@ export async function request<T>(
     }
 
     // Erreur réseau brute ou timeout de l'AbortController
-    const isTimeout = error instanceof Error && error.name === "AbortError";
+    const isTimeout = cancellation.timedOut;
     throw {
       type: "RESEAU",
       message: isTimeout
         ? "Délai d’attente dépassé (timeout)."
         : "Impossible de joindre le serveur.",
     } satisfies AppError;
+  } finally {
+    cancellation.dispose();
   }
 }

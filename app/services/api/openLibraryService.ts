@@ -1,5 +1,6 @@
 import { OPEN_LIBRARY } from "@/constants/constants";
 import { z } from "zod";
+import { createRequestCancellation } from "./requestCancellation";
 
 export const OpenLibraryDocSchema = z.object({
   title: z.string().optional(),
@@ -33,25 +34,26 @@ export async function fetchOpenLibraryData(
     return fallbackResult;
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), OPEN_LIBRARY.timeoutMs);
+  const cancellation = createRequestCancellation(OPEN_LIBRARY.timeoutMs, signal);
 
   try {
+    cancellation.throwIfAborted();
     const encodedTitle = encodeURIComponent(titre.trim());
     const response = await fetch(
       `${OPEN_LIBRARY.searchUrl}?title=${encodedTitle}&limit=${OPEN_LIBRARY.searchLimit}`,
       {
-        signal: signal ?? controller.signal,
+        signal: cancellation.signal,
       },
     );
 
-    clearTimeout(timeoutId);
+    cancellation.throwIfAborted();
 
     if (!response.ok) {
       return fallbackResult; // Dégradation silencieuse
     }
 
     const json = await response.json();
+    cancellation.throwIfAborted();
     const parsed = OpenLibraryResponseSchema.safeParse(json);
 
     if (!parsed.success || parsed.data.docs.length === 0) {
@@ -68,8 +70,12 @@ export async function fetchOpenLibraryData(
         : undefined,
     };
   } catch {
-    clearTimeout(timeoutId);
+    if (cancellation.signal.aborted && !cancellation.timedOut) {
+      cancellation.throwIfAborted();
+    }
     // En cas de panne d'OpenLibrary ou de timeout : retour silencieux du repli
     return fallbackResult;
+  } finally {
+    cancellation.dispose();
   }
 }

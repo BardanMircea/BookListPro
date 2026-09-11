@@ -186,6 +186,8 @@ La configuration actuelle lit directement les constantes du projet ; aucun fichi
 
 ## Architecture
 
+Les choix structurants et leurs compromis sont documentés dans les [trois décisions d’architecture (ADR)](docs/ADR.md) : gestion des données serveur, validation des contrats API et traitement des conflits de version.
+
 ```text
 app/
 ├── _layout.tsx             # Providers et navigation principale
@@ -318,6 +320,6 @@ Ces commandes vérifient les types TypeScript et les règles ESLint. Le détail 
 - Le fonctionnement complet dépend du serveur REST externe ; aucun mode hors ligne persistant n’est implémenté pour les livres et les notes.
 - Le choix français/anglais est disponible, mais certains messages restent écrits directement en français.
 - La gestion de `AUTH` traduit les réponses HTTP ; aucun parcours de connexion n’est implémenté dans le client.
-- La combinaison d’un signal d’annulation externe et du timeout reste à corriger dans les clients HTTP, comme détaillé dans la documentation des tests.
+- L’audit et les corrections de l’annulation et des timeouts HTTP sont documentés dans [docs/IA.md](docs/IA.md), avec les tests de régression associés.
 - Une réponse rejetée par Zod est actuellement présentée comme une erreur `RESEAU`.
 - La suite couvre les services et des comportements ciblés ; elle ne comprend pas de tests de parcours complets sur appareil.
